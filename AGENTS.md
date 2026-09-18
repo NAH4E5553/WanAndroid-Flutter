@@ -88,3 +88,15 @@ flutter build ios --simulator --debug
 - `tool/analyze_project.dart` 是受限环境下直接驱动同一 Dart Analysis Server 的补充入口，不替代 `flutter analyze`。
 - 非活动分支栈恢复必须由 `integration_test/navigation_restoration_test.dart` 动态通过；源码存在或静态分析通过不能关闭该门禁。
 - Android/iOS 可运行壳必须以实际构建和设备/Simulator 运行结果关闭；启动前环境阻塞仍记为待验证。
+
+## 阶段 2 验证入口
+
+在仓库根目录执行阶段 1 的完整入口，并追加：
+
+```bash
+dart --packages=tool/standalone_package_config.json tool/verify_stage2.dart
+```
+
+- 生产启动路径必须使用正式网络与仓储实现；固定 Fake 仅保留在测试中。
+- Result、响应映射、取消、分页、首页独立资源、每日一问、搜索换词竞争和搜索历史有序写入均须有自动测试。
+- Android/iOS 构建及设备验证只证明当前阶段页面可运行，不得外推为 WebView、登录、收藏、真实进程恢复或发布验收。

@@ -9,6 +9,7 @@ class Article {
     required this.chapter,
     required this.publishedAt,
     required this.collected,
+    this.collectionSession,
   });
 
   final int id;
@@ -20,4 +21,5 @@ class Article {
   final String chapter;
   final String publishedAt;
   final bool collected;
+  final String? collectionSession;
 }

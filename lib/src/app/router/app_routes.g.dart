@@ -21,6 +21,16 @@ RouteBase get $mainShellRouteData => StatefulShellRouteData.$route(
           factory: $HomeRouteData._fromState,
           routes: [
             GoRouteData.$route(
+              path: 'search',
+              hasOverriddenOnExit: false,
+              factory: $SearchRouteData._fromState,
+            ),
+            GoRouteData.$route(
+              path: 'questions',
+              hasOverriddenOnExit: false,
+              factory: $DailyQuestionsRouteData._fromState,
+            ),
+            GoRouteData.$route(
               path: 'preview/:articleId',
               hasOverriddenOnExit: false,
               factory: $HomePreviewRouteData._fromState,
@@ -62,6 +72,61 @@ mixin $HomeRouteData on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/home');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $SearchRouteData on GoRouteData {
+  static SearchRouteData _fromState(GoRouterState state) => SearchRouteData(
+    routeInstanceId: state.uri.queryParameters['route-instance-id']!,
+  );
+
+  SearchRouteData get _self => this as SearchRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/home/search',
+    queryParams: {'route-instance-id': _self.routeInstanceId},
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $DailyQuestionsRouteData on GoRouteData {
+  static DailyQuestionsRouteData _fromState(GoRouterState state) =>
+      DailyQuestionsRouteData(
+        routeInstanceId: state.uri.queryParameters['route-instance-id']!,
+      );
+
+  DailyQuestionsRouteData get _self => this as DailyQuestionsRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/home/questions',
+    queryParams: {'route-instance-id': _self.routeInstanceId},
+  );
 
   @override
   void go(BuildContext context) => context.go(location);

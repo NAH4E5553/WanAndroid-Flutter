@@ -22,7 +22,6 @@ void main() {
     'tool/generate_launcher_icons.dart',
     'tool/verify_architecture.dart',
     'tool/verify_architecture_fixtures.dart',
-    '.github/workflows/stage1.yml',
     'android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png',
     'ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png',
   ];
@@ -32,6 +31,10 @@ void main() {
   final List<String> failures = <String>[];
   if (missing.isNotEmpty) {
     failures.add('Missing stage 1 files: ${missing.join(', ')}');
+  }
+  if (!File('${root.path}/.github/workflows/stage1.yml').existsSync() &&
+      !File('${root.path}/.github/workflows/stage2.yml').existsSync()) {
+    failures.add('Missing active quality workflow.');
   }
   final File frozenLock = File(
     '${root.path}/stage0/dependency_lock/pubspec.lock',
