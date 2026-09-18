@@ -4,6 +4,9 @@ on:
   pull_request:
   push:
 
+env:
+  PUB_HOSTED_URL: https://pub.flutter-io.cn
+
 jobs:
   analyze-and-test:
     runs-on: ubuntu-latest
@@ -25,7 +28,23 @@ jobs:
       - run: dart --packages=tool/standalone_package_config.json tool/verify_stage1.dart
       - run: flutter analyze
       - run: flutter test --coverage
-      - run: flutter test integration_test/navigation_restoration_test.dart
+
+  android-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.4
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart run build_runner build
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          script: flutter test integration_test/navigation_restoration_test.dart -d emulator-5554
 
   android-shell:
     runs-on: ubuntu-latest
