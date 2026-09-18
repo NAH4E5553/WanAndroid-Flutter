@@ -2,9 +2,12 @@ name: Stage 2 checks
 
 on:
   pull_request:
-  push:
-    branches:
-      - main
+    paths-ignore:
+      - '**/*.md'
+
+concurrency:
+  group: stage2-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   PUB_HOSTED_URL: https://pub.flutter-io.cn
@@ -13,7 +16,7 @@ jobs:
   analyze-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.47.4
@@ -22,7 +25,7 @@ jobs:
       - run: flutter pub get
       - run: dart run build_runner build
       - run: dart --packages=tool/standalone_package_config.json tool/generate_launcher_icons.dart
-      - run: git diff --exit-code -- android/app/src/main/res ios/Runner/Assets.xcassets/AppIcon.appiconset
+      - run: git diff --exit-code
       - run: dart format --output=none --set-exit-if-changed .
       - run: dart --packages=tool/standalone_package_config.json tool/analyze_project.dart
       - run: dart --packages=tool/standalone_package_config.json tool/verify_architecture.dart
@@ -36,47 +39,74 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.47.4
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: dart run build_runner build
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+          cache-read-only: false
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - uses: reactivecircus/android-emulator-runner@v2
+      - name: Cache Android virtual device
+        id: avd-cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ runner.os }}-api-35-x86_64-v1
+      - name: Create Android virtual device snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
           arch: x86_64
-          script: flutter test integration_test -d emulator-5554
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Android virtual device snapshot created"
+      - name: Run Android integration suite
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: flutter test integration_test/stage2_ci_test.dart -d emulator-5554 --no-pub --reporter expanded
 
   android-shell:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.47.4
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: dart run build_runner build
-      - run: flutter build apk --debug
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+          cache-read-only: false
+      - run: flutter build apk --debug --no-pub
 
   ios-shell:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.47.4
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: dart run build_runner build
-      - run: flutter build ios --simulator --debug
+      - run: flutter build ios --simulator --debug --no-pub

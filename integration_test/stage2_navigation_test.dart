@@ -14,7 +14,10 @@ import 'package:wanandroid_flutter/src/model/search_history.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  registerStage2NavigationTests();
+}
 
+void registerStage2NavigationTests() {
   testWidgets('opens search results and the daily questions page', (
     WidgetTester tester,
   ) async {

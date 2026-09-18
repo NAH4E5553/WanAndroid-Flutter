@@ -12,7 +12,10 @@ import 'package:wanandroid_flutter/src/model/page_result.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  registerNavigationRestorationTests();
+}
 
+void registerNavigationRestorationTests() {
   testWidgets('restores the inactive home detail stack and active branch', (
     WidgetTester tester,
   ) async {

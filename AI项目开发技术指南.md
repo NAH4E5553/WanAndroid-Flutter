@@ -10,6 +10,8 @@
 
 阶段1已完成并经PR #1与远端`main` CI验证。用户于2026-09-18授权进入阶段2；阶段2生产只读网络、取消、分页、首页、每日一问、搜索、搜索历史和可见性策略已实现，确定性测试、双端Integration、Debug构建及PR #2远端CI通过并合并。当前仍停留在阶段2；未经授权不进入阶段3。专题、WebView、登录、收藏写入、逐页视觉验收、真实进程恢复和发布检查继续按阶段3～6执行。
 
+阶段2完整CI只在包含非Markdown变更的Pull Request运行；纯Markdown PR不启动Flutter/双端构建，合并到`main`不重复执行同一套完整门禁。同一PR的新提交取消旧运行。代码生成与生成物一致性只在Analyze任务执行一次；Android Integration使用一个测试入口在同一次应用启动中注册当前阶段全部设备流程，并缓存Gradle User Home与固定API/架构的AVD快照。缓存、合并入口或跳过重复运行只优化执行方式，不减少Analyze、Unit/Widget、Android Integration、Android Debug和iOS Simulator Debug五类验证职责；阶段6发布检查仍独立执行。
+
 ## 1. 使用方式与指令优先级
 
 本指南把实施方案转换为 AI 可以逐项执行和验收的工程规则。AI 开始任何任务前必须先判断当前阶段、读取适用文件，并确认本次任务是否获得了修改代码的授权。
