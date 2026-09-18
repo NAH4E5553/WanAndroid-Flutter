@@ -5,6 +5,7 @@ analyzer:
     - build/**
     - android/**
     - ios/**
+    - stage0/**
     - tool/test_fixtures/**
   language:
     strict-casts: true
