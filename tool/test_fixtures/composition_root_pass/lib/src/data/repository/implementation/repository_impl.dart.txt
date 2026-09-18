@@ -1,0 +1,3 @@
+import '../contract/repository.dart';
+
+class RepositoryImpl implements Repository {}

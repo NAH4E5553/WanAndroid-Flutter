@@ -1,0 +1,32 @@
+# Flutter and Dart caches
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+**/build/
+/coverage/
+
+# IDE and OS files
+.DS_Store
+.idea/
+*.iml
+*.log
+*.swp
+
+# Generated platform files and build outputs
+**/ios/Flutter/.last_build_id
+ios/Flutter/Generated.xcconfig
+ios/Flutter/ephemeral/
+ios/Flutter/flutter_export_environment.sh
+ios/Runner/GeneratedPluginRegistrant.*
+android/.gradle/
+android/local.properties
+android/app/debug/
+android/app/profile/
+android/app/release/
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+
+# Local signing and credentials
+android/key.properties
+**/*.keystore
+**/*.jks

@@ -1,0 +1,54 @@
+name: Stage 1 checks
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.4
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart run build_runner build
+      - run: dart --packages=tool/standalone_package_config.json tool/generate_launcher_icons.dart
+      - run: git diff --exit-code -- android/app/src/main/res ios/Runner/Assets.xcassets/AppIcon.appiconset
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: dart --packages=tool/standalone_package_config.json tool/analyze_project.dart
+      - run: dart --packages=tool/standalone_package_config.json tool/verify_architecture.dart
+      - run: dart --packages=tool/standalone_package_config.json tool/verify_architecture_fixtures.dart
+      - run: dart --packages=tool/standalone_package_config.json tool/verify_stage1.dart
+      - run: flutter analyze
+      - run: flutter test --coverage
+      - run: flutter test integration_test/navigation_restoration_test.dart
+
+  android-shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.4
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart run build_runner build
+      - run: flutter build apk --debug
+
+  ios-shell:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.4
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart run build_runner build
+      - run: flutter build ios --simulator --debug
