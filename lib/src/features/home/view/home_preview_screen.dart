@@ -42,7 +42,7 @@ class HomePreviewScreen extends StatelessWidget {
                 '文章预览 #$articleId',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
-              const Text('阶段 1 只验证导航、主题和组件调用链；生产阅读器将在阶段 4 实现。'),
+              const Text('阶段 2 已接入文章列表；生产 WebView 阅读器仍按计划在阶段 4 实现。'),
             ],
           ),
         ),

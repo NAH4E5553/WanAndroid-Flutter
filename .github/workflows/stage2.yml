@@ -1,4 +1,4 @@
-name: Stage 1 checks
+name: Stage 2 checks
 
 on:
   pull_request:
@@ -28,6 +28,7 @@ jobs:
       - run: dart --packages=tool/standalone_package_config.json tool/verify_architecture.dart
       - run: dart --packages=tool/standalone_package_config.json tool/verify_architecture_fixtures.dart
       - run: dart --packages=tool/standalone_package_config.json tool/verify_stage1.dart
+      - run: dart --packages=tool/standalone_package_config.json tool/verify_stage2.dart
       - run: flutter analyze
       - run: flutter test --coverage
 
@@ -52,7 +53,7 @@ jobs:
         with:
           api-level: 35
           arch: x86_64
-          script: flutter test integration_test/navigation_restoration_test.dart -d emulator-5554
+          script: flutter test integration_test -d emulator-5554
 
   android-shell:
     runs-on: ubuntu-latest

@@ -1,32 +1,71 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wanandroid_flutter/src/app/router/branch_restoration_controller.dart';
+import 'package:wanandroid_flutter/src/core/platform/app_visibility.dart';
 import 'package:wanandroid_flutter/src/core/ui/app_scaffold.dart';
 
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
 
   @override
-  Widget build(BuildContext context) => AppScaffold(
-    body: navigationShell,
-    bottomBar: NavigationBar(
-      selectedIndex: navigationShell.currentIndex,
-      onDestinationSelected: (int index) {
-        BranchRestorationScope.of(context).selectBranch(index);
-        navigationShell.goBranch(
-          index,
-          initialLocation: index == navigationShell.currentIndex,
-        );
-      },
-      destinations: const <NavigationDestination>[
-        NavigationDestination(icon: _TabIcon(index: 0), label: '首页'),
-        NavigationDestination(icon: _TabIcon(index: 1), label: '专题'),
-        NavigationDestination(icon: _TabIcon(index: 2), label: '我的'),
-      ],
-    ),
-  );
+  ConsumerState<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends ConsumerState<AppShell>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    ref.read(appVisibilityProvider.notifier).updateLifecycle(state);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final int activeBranch = widget.navigationShell.currentIndex;
+    final bool homeRouteCurrent = GoRouterState.of(context).uri.path == '/home';
+    WidgetsBinding.instance.addPostFrameCallback((Duration _) {
+      if (mounted) {
+        ref
+            .read(appVisibilityProvider.notifier)
+            .updateRoute(
+              activeBranch: activeBranch,
+              homeRouteCurrent: homeRouteCurrent,
+            );
+      }
+    });
+    return AppScaffold(
+      body: widget.navigationShell,
+      bottomBar: NavigationBar(
+        selectedIndex: widget.navigationShell.currentIndex,
+        onDestinationSelected: (int index) {
+          BranchRestorationScope.of(context).selectBranch(index);
+          widget.navigationShell.goBranch(
+            index,
+            initialLocation: index == widget.navigationShell.currentIndex,
+          );
+        },
+        destinations: const <NavigationDestination>[
+          NavigationDestination(icon: _TabIcon(index: 0), label: '首页'),
+          NavigationDestination(icon: _TabIcon(index: 1), label: '专题'),
+          NavigationDestination(icon: _TabIcon(index: 2), label: '我的'),
+        ],
+      ),
+    );
+  }
 }
 
 class _TabIcon extends StatelessWidget {
