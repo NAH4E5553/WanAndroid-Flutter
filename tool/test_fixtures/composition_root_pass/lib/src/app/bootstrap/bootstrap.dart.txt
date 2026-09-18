@@ -1,0 +1,4 @@
+import '../../data/repository/contract/repository.dart';
+import '../../data/repository/implementation/repository_impl.dart';
+
+Repository bind() => RepositoryImpl();
