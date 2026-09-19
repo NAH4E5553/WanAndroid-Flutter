@@ -1,8 +1,11 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:wanandroid_flutter/src/app/app.dart';
+import 'package:wanandroid_flutter/src/app/router/app_shell.dart';
+import 'package:wanandroid_flutter/src/app/router/branch_restoration_controller.dart';
 import 'package:wanandroid_flutter/src/core/cancellation/request_cancellation.dart';
 import 'package:wanandroid_flutter/src/core/result/data_result.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/article_repository.dart';
@@ -36,22 +39,35 @@ void registerNavigationRestorationTests() {
       ),
     );
     await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsOneWidget);
 
     await tester.tap(find.text('用固定 Fake 数据建立第一个 Flutter 垂直切片'));
     await tester.pumpAndSettle();
-    expect(find.text('文章预览 #101'), findsOneWidget);
+    expect(find.text('链接无效或不受支持'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
 
-    await tester.tap(find.text('专题'));
+    // Seed an inactive branch while the reader owns the screen. Its bottom
+    // navigation is intentionally hidden, but restoration must retain its stack.
+    final branch = BranchRestorationScope.of(
+      tester.element(find.byType(AppShell)),
+    );
+    branch.selectBranch(1);
+    tester
+        .widget<StatefulNavigationShell>(find.byType(StatefulNavigationShell))
+        .goBranch(1);
     await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.text('开发语言'), findsOneWidget);
     expect(find.text('专题文章 11'), findsOneWidget);
 
     await tester.tap(find.text('专题文章 11'));
     await tester.pumpAndSettle();
-    expect(find.text('文章预览 #11000'), findsOneWidget);
+    expect(find.text('链接无效或不受支持'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     expect(find.text('专题文章 11'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
 
     await tester.restartAndRestore();
     await tester.pumpAndSettle();
@@ -64,7 +80,8 @@ void registerNavigationRestorationTests() {
 
     await tester.tap(find.text('首页'));
     await tester.pumpAndSettle();
-    expect(find.text('文章预览 #101'), findsOneWidget);
+    expect(find.text('链接无效或不受支持'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
   });
 }
 
@@ -103,7 +120,7 @@ class _NavigationArticleRepository implements ArticleRepository {
 const Article _article = Article(
   id: 101,
   title: '用固定 Fake 数据建立第一个 Flutter 垂直切片',
-  url: 'https://fixture.invalid/a',
+  url: '',
   author: '作者',
   shareUser: '',
   superChapterName: '开发实践',

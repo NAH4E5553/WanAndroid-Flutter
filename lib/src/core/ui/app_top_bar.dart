@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 
 class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
-  const AppTopBar({required this.title, required this.onBack, super.key});
+  const AppTopBar({
+    required this.title,
+    required this.onBack,
+    this.actions,
+    super.key,
+  });
 
   final String title;
   final VoidCallback onBack;
+  final List<Widget>? actions;
 
   @override
   Size get preferredSize => const Size.fromHeight(64);
@@ -30,6 +36,7 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
     surfaceTintColor: Colors.transparent,
     scrolledUnderElevation: 0,
     titleSpacing: 0,
+    actions: actions,
   );
 }
 

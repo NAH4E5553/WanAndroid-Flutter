@@ -6,6 +6,7 @@ import 'package:wanandroid_flutter/src/app/router/app_shell.dart';
 import 'package:wanandroid_flutter/src/app/router/branch_restoration_controller.dart';
 import 'package:wanandroid_flutter/src/features/home/navigation/home_navigation.dart';
 import 'package:wanandroid_flutter/src/features/profile/navigation/profile_navigation.dart';
+import 'package:wanandroid_flutter/src/features/reader/navigation/reader_navigation.dart';
 import 'package:wanandroid_flutter/src/features/topics/navigation/topics_navigation.dart';
 import 'package:wanandroid_flutter/src/model/article.dart';
 
@@ -37,7 +38,15 @@ part 'app_routes.g.dart';
     ),
     TypedStatefulShellBranch<ProfileBranchData>(
       routes: <TypedRoute<RouteData>>[
-        TypedGoRoute<ProfileRouteData>(path: '/profile'),
+        TypedGoRoute<ProfileRouteData>(
+          path: '/profile',
+          routes: <TypedRoute<RouteData>>[
+            TypedGoRoute<HistoryRouteData>(
+              path: 'history',
+              routes: [TypedGoRoute<HistoryReaderRouteData>(path: 'read')],
+            ),
+          ],
+        ),
       ],
     ),
   ],
@@ -146,11 +155,13 @@ class HomePreviewRouteData extends GoRouteData with $HomePreviewRouteData {
     required this.articleId,
     required this.routeInstanceId,
     required this.title,
+    this.url = '',
   });
 
   final int articleId;
   final String routeInstanceId;
   final String title;
+  final String url;
 
   @override
   Page<void> buildPage(BuildContext context, GoRouterState state) {
@@ -162,10 +173,11 @@ class HomePreviewRouteData extends GoRouteData with $HomePreviewRouteData {
     return MaterialPage<void>(
       key: state.pageKey,
       restorationId: routeInstanceId,
-      child: buildHomePreviewScreen(
+      child: buildArticleReaderScreen(
         articleId: articleId,
         title: title,
-        onBack: () {
+        url: url,
+        onExit: () {
           recordPop();
           context.pop();
         },
@@ -188,6 +200,7 @@ class TopicsRouteData extends GoRouteData with $TopicsRouteData {
         articleId: article.id,
         routeInstanceId: controller.nextRouteInstanceId(),
         title: article.title,
+        url: article.url,
       );
       controller.push(1, route.location);
       unawaited(route.push<void>(context));
@@ -200,11 +213,13 @@ class TopicsPreviewRouteData extends GoRouteData with $TopicsPreviewRouteData {
     required this.articleId,
     required this.routeInstanceId,
     required this.title,
+    this.url = '',
   });
 
   final int articleId;
   final String routeInstanceId;
   final String title;
+  final String url;
 
   @override
   Page<void> buildPage(BuildContext context, GoRouterState state) {
@@ -216,10 +231,11 @@ class TopicsPreviewRouteData extends GoRouteData with $TopicsPreviewRouteData {
     return MaterialPage<void>(
       key: state.pageKey,
       restorationId: routeInstanceId,
-      child: buildHomePreviewScreen(
+      child: buildArticleReaderScreen(
         articleId: articleId,
         title: title,
-        onBack: () {
+        url: url,
+        onExit: () {
           recordPop();
           context.pop();
         },
@@ -233,8 +249,85 @@ class ProfileRouteData extends GoRouteData with $ProfileRouteData {
   const ProfileRouteData();
 
   @override
-  Widget build(BuildContext context, GoRouterState state) =>
-      buildProfileScreen();
+  Widget build(BuildContext context, GoRouterState state) => buildProfileScreen(
+    onHistoryTap: () {
+      final controller = BranchRestorationScope.of(context);
+      final route = HistoryRouteData(
+        routeInstanceId: controller.nextRouteInstanceId(),
+      );
+      controller.push(2, route.location);
+      unawaited(route.push<void>(context));
+    },
+  );
+}
+
+class HistoryRouteData extends GoRouteData with $HistoryRouteData {
+  const HistoryRouteData({required this.routeInstanceId});
+
+  final String routeInstanceId;
+
+  @override
+  Page<void> buildPage(BuildContext context, GoRouterState state) {
+    final controller = BranchRestorationScope.of(context);
+    final currentLocation = location;
+    void recordPop() => controller.pop(2, currentLocation);
+    return MaterialPage<void>(
+      key: state.pageKey,
+      restorationId: routeInstanceId,
+      child: buildReadingHistoryScreen(
+        onBack: () {
+          recordPop();
+          context.pop();
+        },
+        onPopped: recordPop,
+        onRead: (String url, String title, int? articleId) {
+          final route = HistoryReaderRouteData(
+            routeInstanceId: controller.nextRouteInstanceId(),
+            url: url,
+            title: title,
+            articleId: articleId,
+          );
+          controller.push(2, route.location);
+          unawaited(route.push<void>(context));
+        },
+      ),
+    );
+  }
+}
+
+class HistoryReaderRouteData extends GoRouteData with $HistoryReaderRouteData {
+  const HistoryReaderRouteData({
+    required this.routeInstanceId,
+    required this.url,
+    required this.title,
+    this.articleId,
+  });
+
+  final String routeInstanceId;
+  final String url;
+  final String title;
+  final int? articleId;
+
+  @override
+  Page<void> buildPage(BuildContext context, GoRouterState state) {
+    final controller = BranchRestorationScope.of(context);
+    final currentLocation = location;
+    void recordPop() => controller.pop(2, currentLocation);
+    return MaterialPage<void>(
+      key: state.pageKey,
+      restorationId: routeInstanceId,
+      child: buildArticleReaderScreen(
+        articleId: articleId,
+        title: title,
+        url: url,
+        onExit: () {
+          recordPop();
+          context.pop();
+        },
+        onPopped: recordPop,
+      ),
+    );
+  }
 }
 
 void _pushArticle(BuildContext context, Article article) {
@@ -245,6 +338,7 @@ void _pushArticle(BuildContext context, Article article) {
     articleId: article.id,
     routeInstanceId: controller.nextRouteInstanceId(),
     title: article.title,
+    url: article.url,
   );
   controller.push(0, route.location);
   unawaited(route.push<void>(context));

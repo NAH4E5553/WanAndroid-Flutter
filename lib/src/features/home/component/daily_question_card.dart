@@ -47,6 +47,8 @@ class DailyQuestionCard extends StatelessWidget {
                       children: <Widget>[
                         Text(
                           question.title,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontSize: 18, height: 26 / 18),
                         ),

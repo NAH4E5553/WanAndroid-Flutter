@@ -33,7 +33,7 @@ class FixedTopicRepository implements TopicRepository {
           Article(
             id: categoryId * 1000 + page * 100 + index,
             title: index == 0 ? '专题文章 $categoryId' : '专题文章 $categoryId-$index',
-            url: 'https://fixture.invalid/topic/$categoryId',
+            url: '',
             author: '固定作者',
             shareUser: '',
             superChapterName: '专题',
