@@ -6,9 +6,12 @@ import 'package:wanandroid_flutter/src/core/result/data_result.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/article_repository.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/search_suggestions_repository.dart';
 import 'package:wanandroid_flutter/src/features/home/view_model/home_dependencies.dart';
+import 'package:wanandroid_flutter/src/features/topics/view_model/topics_dependencies.dart';
 import 'package:wanandroid_flutter/src/model/article.dart';
 import 'package:wanandroid_flutter/src/model/page_result.dart';
 import 'package:wanandroid_flutter/src/model/search_history.dart';
+
+import '../support/fixed_topic_repository.dart';
 
 void main() {
   testWidgets('renders the home vertical slice from repository contracts', (
@@ -18,6 +21,9 @@ void main() {
       ProviderScope(
         overrides: [
           articleRepositoryProvider.overrideWithValue(_AppArticleRepository()),
+          topicRepositoryProvider.overrideWithValue(
+            const FixedTopicRepository(),
+          ),
           searchSuggestionsRepositoryProvider.overrideWithValue(
             _AppSearchSuggestionsRepository(),
           ),

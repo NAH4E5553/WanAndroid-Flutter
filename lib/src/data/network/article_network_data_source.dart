@@ -19,6 +19,14 @@ abstract interface class ArticleNetworkDataSource {
   );
 
   Future<Map<String, dynamic>> hotKeys(RequestCancellation cancellation);
+
+  Future<Map<String, dynamic>> topics(RequestCancellation cancellation);
+
+  Future<Map<String, dynamic>> topicArticles(
+    int categoryId,
+    int page,
+    RequestCancellation cancellation,
+  );
 }
 
 final class DefaultArticleNetworkDataSource
@@ -49,4 +57,15 @@ final class DefaultArticleNetworkDataSource
   @override
   Future<Map<String, dynamic>> hotKeys(RequestCancellation cancellation) =>
       _service.hotKeys(cancellation);
+
+  @override
+  Future<Map<String, dynamic>> topics(RequestCancellation cancellation) =>
+      _service.topics(cancellation);
+
+  @override
+  Future<Map<String, dynamic>> topicArticles(
+    int categoryId,
+    int page,
+    RequestCancellation cancellation,
+  ) => _service.topicArticles(categoryId, page, cancellation);
 }

@@ -130,4 +130,15 @@ class _UnusedNetwork implements ArticleNetworkDataSource {
     String keyword,
     RequestCancellation cancellation,
   ) => _unused();
+
+  @override
+  Future<Map<String, dynamic>> topics(RequestCancellation cancellation) =>
+      _unused();
+
+  @override
+  Future<Map<String, dynamic>> topicArticles(
+    int categoryId,
+    int page,
+    RequestCancellation cancellation,
+  ) => _unused();
 }

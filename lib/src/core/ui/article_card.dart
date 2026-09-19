@@ -3,10 +3,16 @@ import 'package:wanandroid_flutter/src/core/theme/wan_theme.dart';
 import 'package:wanandroid_flutter/src/model/article.dart';
 
 class ArticleCard extends StatelessWidget {
-  const ArticleCard({required this.article, required this.onTap, super.key});
+  const ArticleCard({
+    required this.article,
+    required this.onTap,
+    this.showCategory = true,
+    super.key,
+  });
 
   final Article article;
   final VoidCallback onTap;
+  final bool showCategory;
 
   @override
   Widget build(BuildContext context) {
@@ -46,11 +52,12 @@ class ArticleCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyMedium
                         ?.copyWith(color: colors.onSurfaceVariant),
                   ),
-                  Text(
-                    '分类：${category.isEmpty ? '未知' : category}',
-                    style: Theme.of(context).textTheme.labelLarge
-                        ?.copyWith(color: colors.primary),
-                  ),
+                  if (showCategory)
+                    Text(
+                      '分类：${category.isEmpty ? '未知' : category}',
+                      style: Theme.of(context).textTheme.labelLarge
+                          ?.copyWith(color: colors.primary),
+                    ),
                   Text(
                     '时间：${article.publishedAt}',
                     style: Theme.of(context).textTheme.bodySmall

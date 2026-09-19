@@ -5,8 +5,10 @@ import 'package:wanandroid_flutter/src/data/network/article_network_data_source.
 import 'package:wanandroid_flutter/src/data/network/service/wan_api_service.dart';
 import 'package:wanandroid_flutter/src/data/repository/implementation/default_article_repository.dart';
 import 'package:wanandroid_flutter/src/data/repository/implementation/default_search_suggestions_repository.dart';
+import 'package:wanandroid_flutter/src/data/repository/implementation/default_topic_repository.dart';
 import 'package:wanandroid_flutter/src/data/storage/search_history_storage.dart';
 import 'package:wanandroid_flutter/src/features/home/view_model/home_dependencies.dart';
+import 'package:wanandroid_flutter/src/features/topics/view_model/topics_dependencies.dart';
 
 void bootstrap() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +21,9 @@ void bootstrap() {
       overrides: [
         articleRepositoryProvider.overrideWithValue(
           DefaultArticleRepository(network),
+        ),
+        topicRepositoryProvider.overrideWithValue(
+          DefaultTopicRepository(network),
         ),
         searchSuggestionsRepositoryProvider.overrideWithValue(
           DefaultSearchSuggestionsRepository(
