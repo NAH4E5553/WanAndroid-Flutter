@@ -37,6 +37,8 @@ class _AppShellState extends ConsumerState<AppShell>
   Widget build(BuildContext context) {
     final int activeBranch = widget.navigationShell.currentIndex;
     final bool homeRouteCurrent = GoRouterState.of(context).uri.path == '/home';
+    final bool topicsRouteCurrent =
+        GoRouterState.of(context).uri.path == '/topics';
     WidgetsBinding.instance.addPostFrameCallback((Duration _) {
       if (mounted) {
         ref
@@ -44,6 +46,7 @@ class _AppShellState extends ConsumerState<AppShell>
             .updateRoute(
               activeBranch: activeBranch,
               homeRouteCurrent: homeRouteCurrent,
+              topicsRouteCurrent: topicsRouteCurrent,
             );
       }
     });

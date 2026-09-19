@@ -46,6 +46,13 @@ RouteBase get $mainShellRouteData => StatefulShellRouteData.$route(
           path: '/topics',
           hasOverriddenOnExit: false,
           factory: $TopicsRouteData._fromState,
+          routes: [
+            GoRouteData.$route(
+              path: 'preview/:articleId',
+              hasOverriddenOnExit: false,
+              factory: $TopicsPreviewRouteData._fromState,
+            ),
+          ],
         ),
       ],
     ),
@@ -181,6 +188,39 @@ mixin $TopicsRouteData on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/topics');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $TopicsPreviewRouteData on GoRouteData {
+  static TopicsPreviewRouteData _fromState(GoRouterState state) =>
+      TopicsPreviewRouteData(
+        articleId: int.parse(state.pathParameters['articleId']!),
+        routeInstanceId: state.uri.queryParameters['route-instance-id']!,
+        title: state.uri.queryParameters['title']!,
+      );
+
+  TopicsPreviewRouteData get _self => this as TopicsPreviewRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/topics/preview/${Uri.encodeComponent(_self.articleId.toString())}',
+    queryParams: {
+      'route-instance-id': _self.routeInstanceId,
+      'title': _self.title,
+    },
+  );
 
   @override
   void go(BuildContext context) => context.go(location);

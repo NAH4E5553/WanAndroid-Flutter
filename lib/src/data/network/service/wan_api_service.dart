@@ -19,6 +19,14 @@ abstract interface class WanApiService {
   );
 
   Future<Map<String, dynamic>> hotKeys(RequestCancellation cancellation);
+
+  Future<Map<String, dynamic>> topics(RequestCancellation cancellation);
+
+  Future<Map<String, dynamic>> topicArticles(
+    int categoryId,
+    int page,
+    RequestCancellation cancellation,
+  );
 }
 
 final class DioWanApiService implements WanApiService {
@@ -41,6 +49,24 @@ final class DioWanApiService implements WanApiService {
   @override
   Future<Map<String, dynamic>> hotKeys(RequestCancellation cancellation) =>
       _get('hotkey/json', cancellation);
+
+  @override
+  Future<Map<String, dynamic>> topics(RequestCancellation cancellation) =>
+      _get('tree/json', cancellation);
+
+  @override
+  Future<Map<String, dynamic>> topicArticles(
+    int categoryId,
+    int page,
+    RequestCancellation cancellation,
+  ) => _request(
+    (CancelToken token) => _dio.get<Object?>(
+      'article/list/$page/json',
+      queryParameters: <String, int>{'cid': categoryId},
+      cancelToken: token,
+    ),
+    cancellation,
+  );
 
   @override
   Future<Map<String, dynamic>> search(

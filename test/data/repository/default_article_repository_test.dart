@@ -104,6 +104,17 @@ class _FixtureArticleNetworkDataSource implements ArticleNetworkDataSource {
     RequestCancellation cancellation,
   ) async => <String, dynamic>{'errorCode': 0, 'data': <Object>[]};
 
+  @override
+  Future<Map<String, dynamic>> topics(RequestCancellation cancellation) async =>
+      <String, dynamic>{'errorCode': 0, 'data': <Object>[]};
+
+  @override
+  Future<Map<String, dynamic>> topicArticles(
+    int categoryId,
+    int page,
+    RequestCancellation cancellation,
+  ) => articles(page, cancellation);
+
   Map<String, dynamic> _page(List<int> ids) => <String, dynamic>{
     'datas': ids.map(_article).toList(growable: false),
     'curPage': 1,

@@ -7,8 +7,11 @@ import 'package:wanandroid_flutter/src/core/cancellation/request_cancellation.da
 import 'package:wanandroid_flutter/src/core/result/data_result.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/article_repository.dart';
 import 'package:wanandroid_flutter/src/features/home/view_model/home_dependencies.dart';
+import 'package:wanandroid_flutter/src/features/topics/view_model/topics_dependencies.dart';
 import 'package:wanandroid_flutter/src/model/article.dart';
 import 'package:wanandroid_flutter/src/model/page_result.dart';
+
+import '../test/support/fixed_topic_repository.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +28,9 @@ void registerNavigationRestorationTests() {
           articleRepositoryProvider.overrideWithValue(
             _NavigationArticleRepository(),
           ),
+          topicRepositoryProvider.overrideWithValue(
+            const FixedTopicRepository(),
+          ),
         ],
         child: const WanAndroidApp(),
       ),
@@ -37,15 +43,24 @@ void registerNavigationRestorationTests() {
 
     await tester.tap(find.text('专题'));
     await tester.pumpAndSettle();
-    expect(find.text('专题完整交互将在阶段 3 实现。'), findsOneWidget);
+    expect(find.text('开发语言'), findsOneWidget);
+    expect(find.text('专题文章 11'), findsOneWidget);
+
+    await tester.tap(find.text('专题文章 11'));
+    await tester.pumpAndSettle();
+    expect(find.text('文章预览 #11000'), findsOneWidget);
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    expect(find.text('专题文章 11'), findsOneWidget);
 
     await tester.restartAndRestore();
     await tester.pumpAndSettle();
     expect(
-      find.text('专题完整交互将在阶段 3 实现。'),
+      find.text('开发语言'),
       findsOneWidget,
       reason: 'Visible texts after restore: ${_visibleTexts(tester)}',
     );
+    expect(find.text('专题文章 11'), findsOneWidget);
 
     await tester.tap(find.text('首页'));
     await tester.pumpAndSettle();

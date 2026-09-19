@@ -8,9 +8,12 @@ import 'package:wanandroid_flutter/src/core/result/data_result.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/article_repository.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/search_suggestions_repository.dart';
 import 'package:wanandroid_flutter/src/features/home/view_model/home_dependencies.dart';
+import 'package:wanandroid_flutter/src/features/topics/view_model/topics_dependencies.dart';
 import 'package:wanandroid_flutter/src/model/article.dart';
 import 'package:wanandroid_flutter/src/model/page_result.dart';
 import 'package:wanandroid_flutter/src/model/search_history.dart';
+
+import '../test/support/fixed_topic_repository.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +28,9 @@ void registerStage2NavigationTests() {
       ProviderScope(
         overrides: [
           articleRepositoryProvider.overrideWithValue(_Articles()),
+          topicRepositoryProvider.overrideWithValue(
+            const FixedTopicRepository(),
+          ),
           searchSuggestionsRepositoryProvider.overrideWithValue(_Suggestions()),
         ],
         child: const WanAndroidApp(),

@@ -27,7 +27,12 @@ part 'app_routes.g.dart';
     ),
     TypedStatefulShellBranch<TopicsBranchData>(
       routes: <TypedRoute<RouteData>>[
-        TypedGoRoute<TopicsRouteData>(path: '/topics'),
+        TypedGoRoute<TopicsRouteData>(
+          path: '/topics',
+          routes: <TypedRoute<RouteData>>[
+            TypedGoRoute<TopicsPreviewRouteData>(path: 'preview/:articleId'),
+          ],
+        ),
       ],
     ),
     TypedStatefulShellBranch<ProfileBranchData>(
@@ -174,8 +179,54 @@ class TopicsRouteData extends GoRouteData with $TopicsRouteData {
   const TopicsRouteData();
 
   @override
-  Widget build(BuildContext context, GoRouterState state) =>
-      buildTopicsScreen();
+  Widget build(BuildContext context, GoRouterState state) => buildTopicsScreen(
+    onArticleTap: (Article article) {
+      final BranchRestorationController controller = BranchRestorationScope.of(
+        context,
+      );
+      final TopicsPreviewRouteData route = TopicsPreviewRouteData(
+        articleId: article.id,
+        routeInstanceId: controller.nextRouteInstanceId(),
+        title: article.title,
+      );
+      controller.push(1, route.location);
+      unawaited(route.push<void>(context));
+    },
+  );
+}
+
+class TopicsPreviewRouteData extends GoRouteData with $TopicsPreviewRouteData {
+  const TopicsPreviewRouteData({
+    required this.articleId,
+    required this.routeInstanceId,
+    required this.title,
+  });
+
+  final int articleId;
+  final String routeInstanceId;
+  final String title;
+
+  @override
+  Page<void> buildPage(BuildContext context, GoRouterState state) {
+    final String location = this.location;
+    final BranchRestorationController controller = BranchRestorationScope.of(
+      context,
+    );
+    void recordPop() => controller.pop(1, location);
+    return MaterialPage<void>(
+      key: state.pageKey,
+      restorationId: routeInstanceId,
+      child: buildHomePreviewScreen(
+        articleId: articleId,
+        title: title,
+        onBack: () {
+          recordPop();
+          context.pop();
+        },
+        onPopped: recordPop,
+      ),
+    );
+  }
 }
 
 class ProfileRouteData extends GoRouteData with $ProfileRouteData {

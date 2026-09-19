@@ -13,6 +13,9 @@ class NetworkListPage<T> extends StatelessWidget {
     required this.onRetryLoadMore,
     required this.onContinue,
     this.emptyLabel = '暂无内容',
+    this.scrollKey,
+    this.pagingEnabled = true,
+    this.onRetryRefresh,
     super.key,
   });
 
@@ -24,6 +27,9 @@ class NetworkListPage<T> extends StatelessWidget {
   final VoidCallback onRetryLoadMore;
   final VoidCallback onContinue;
   final String emptyLabel;
+  final Key? scrollKey;
+  final bool pagingEnabled;
+  final VoidCallback? onRetryRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +41,7 @@ class NetworkListPage<T> extends StatelessWidget {
     }
     return NotificationListener<ScrollNotification>(
       onNotification: (ScrollNotification notification) {
-        if (notification.metrics.extentAfter < 480) {
+        if (pagingEnabled && notification.metrics.extentAfter < 480) {
           onLoadMore();
         }
         return false;
@@ -43,8 +49,15 @@ class NetworkListPage<T> extends StatelessWidget {
       child: RefreshIndicator(
         onRefresh: onRefresh,
         child: ListView.builder(
+          key: scrollKey,
           physics: const AlwaysScrollableScrollPhysics(),
-          itemCount: state.items.isEmpty ? 1 : state.items.length + 1,
+          itemCount: state.items.isEmpty
+              ? 1
+              : state.items.length +
+                    1 +
+                    (state.refreshError != null && onRetryRefresh != null
+                        ? 1
+                        : 0),
           itemBuilder: (BuildContext context, int index) {
             if (state.items.isEmpty) {
               return SizedBox(
@@ -52,8 +65,19 @@ class NetworkListPage<T> extends StatelessWidget {
                 child: Center(child: Text(emptyLabel)),
               );
             }
-            if (index < state.items.length) {
-              return itemBuilder(context, state.items[index], index);
+            final bool showRefreshError =
+                state.refreshError != null && onRetryRefresh != null;
+            if (showRefreshError && index == 0) {
+              return Center(
+                child: TextButton(
+                  onPressed: onRetryRefresh,
+                  child: const Text('刷新失败，点击重试'),
+                ),
+              );
+            }
+            final int itemIndex = index - (showRefreshError ? 1 : 0);
+            if (itemIndex < state.items.length) {
+              return itemBuilder(context, state.items[itemIndex], itemIndex);
             }
             return _LoadMoreFooter(
               state: state,
