@@ -214,7 +214,7 @@ void registerReaderHistoryTests() {
       await tester.tap(find.text('历史入口文章'));
       await tester.pump(const Duration(milliseconds: 200));
       expect(branch.snapshot.stacks[2].length, 3);
-      expect(find.byType(WebViewWidget), findsOneWidget);
+      expect(find.byType(ArticleReaderScreen), findsOneWidget);
       expect(find.byType(NavigationBar), findsNothing);
       expect(
         find.descendant(
