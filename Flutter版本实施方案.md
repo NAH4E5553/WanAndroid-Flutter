@@ -754,6 +754,8 @@ CI 建议：
 
 2026-09-19实施回填：正式Flutter文章路由已替换阶段1预览页，落地URL白名单/外跳确认、WebView实例代次与保守错误分类、同实例刷新/错误超时换实例、网页优先返回；我的接入独立Drift阅读历史、单调微秒最近置顶、分页/左滑单删/清空。最终本地64/64 Unit/Widget、Android 15与iPhone17 Pro/iOS26.2 Simulator合并Integration各8/8、双端Debug构建及静态/架构/阶段结构检查通过。受控Cookie测试只证明WebView Cookie不进入正式Dio请求。原生渲染终止/资源释放、真实系统边缘/预测手势、逐页视觉/无障碍、真机、真实OS进程恢复、远端PR/CI与发布门禁未关闭；阶段4仍实施中，当前状态以状态记录为准。
 
+2026-09-19 PR回填：[PR #8](https://github.com/NAH4E5553/WanAndroid-Flutter/pull/8)首轮Android Integration因历史路由测试依赖瞬态WebView可见而失败，其他三项通过；修正测试后本地67/67与双端Integration各8/8通过，远端[运行35449173551](https://github.com/NAH4E5553/WanAndroid-Flutter/actions/runs/35449173551)四项全部通过。上段“远端PR/CI未关闭”为本地实施时点的历史记录；PR仍开放，原生专项、视觉/无障碍、真机细项、真实进程恢复及发布门禁继续待验证。
+
 ### 阶段 5：登录、收藏、主题和我的
 
 - 接入主题持久化和失败回滚。
