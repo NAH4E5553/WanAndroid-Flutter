@@ -113,3 +113,17 @@ flutter test integration_test/stage3_ci_test.dart -d <ios-simulator-id>
 
 - 专题树与文章列表使用真实分类 ID；固定 Fake 只用于测试，不用真实账号或收藏写接口。
 - 成功、空、失败、取消、分类竞争、横纵向手势及左栏动画分别记录；构建通过不替代设备交互或阶段 6 视觉验收。
+
+## 阶段 4 验证入口
+
+在仓库根目录执行阶段 3 的完整入口，并追加：
+
+```bash
+dart --packages=tool/standalone_package_config.json tool/verify_stage4.dart
+flutter test integration_test/stage4_ci_test.dart -d <android-device-id>
+flutter test integration_test/stage4_ci_test.dart -d <ios-simulator-id>
+```
+
+- 阅读器与历史测试只用固定 Fake 或本机受控页面；仅 Debug 构建允许测试专用 localhost 明文例外，生产 URL Policy 和 Release 禁止该通道。
+- 重试同 URL 旧实例隔离、主/子资源失败、网页返回优先、历史入库与去重/删除/重开必须分别验证；通用 iOS HTTP 回调身份不明时不得宣称已可靠识别主框架。
+- 生产 WebView/数据库的双端测试不替代真实进程终止、逐页视觉/无障碍、双端真机或阶段 6 发布门禁；阶段 5 登录/收藏/主题不得提前接入。

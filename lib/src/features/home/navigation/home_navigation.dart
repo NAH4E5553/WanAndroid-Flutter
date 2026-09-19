@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanandroid_flutter/src/features/home/view/daily_questions_screen.dart';
-import 'package:wanandroid_flutter/src/features/home/view/home_preview_screen.dart';
 import 'package:wanandroid_flutter/src/features/home/view/home_screen.dart';
 import 'package:wanandroid_flutter/src/features/home/view/search_screen.dart';
 import 'package:wanandroid_flutter/src/features/home/view_model/home_dependencies.dart';
@@ -37,16 +36,4 @@ Widget buildDailyQuestionsScreen({
     homeChildRouteInstanceProvider.overrideWithValue(routeInstanceId),
   ],
   child: DailyQuestionsScreen(onBack: onBack, onArticleTap: onArticleTap),
-);
-
-Widget buildHomePreviewScreen({
-  required int articleId,
-  required String title,
-  required VoidCallback onBack,
-  required VoidCallback onPopped,
-}) => HomePreviewScreen(
-  articleId: articleId,
-  title: title,
-  onBack: onBack,
-  onPopped: onPopped,
 );

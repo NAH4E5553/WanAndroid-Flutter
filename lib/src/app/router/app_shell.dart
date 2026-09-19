@@ -36,9 +36,11 @@ class _AppShellState extends ConsumerState<AppShell>
   @override
   Widget build(BuildContext context) {
     final int activeBranch = widget.navigationShell.currentIndex;
-    final bool homeRouteCurrent = GoRouterState.of(context).uri.path == '/home';
-    final bool topicsRouteCurrent =
-        GoRouterState.of(context).uri.path == '/topics';
+    final String currentPath = GoRouterState.of(context).uri.path;
+    final bool homeRouteCurrent = currentPath == '/home';
+    final bool topicsRouteCurrent = currentPath == '/topics';
+    final bool showBottomBar =
+        homeRouteCurrent || topicsRouteCurrent || currentPath == '/profile';
     WidgetsBinding.instance.addPostFrameCallback((Duration _) {
       if (mounted) {
         ref
@@ -52,21 +54,23 @@ class _AppShellState extends ConsumerState<AppShell>
     });
     return AppScaffold(
       body: widget.navigationShell,
-      bottomBar: NavigationBar(
-        selectedIndex: widget.navigationShell.currentIndex,
-        onDestinationSelected: (int index) {
-          BranchRestorationScope.of(context).selectBranch(index);
-          widget.navigationShell.goBranch(
-            index,
-            initialLocation: index == widget.navigationShell.currentIndex,
-          );
-        },
-        destinations: const <NavigationDestination>[
-          NavigationDestination(icon: _TabIcon(index: 0), label: '首页'),
-          NavigationDestination(icon: _TabIcon(index: 1), label: '专题'),
-          NavigationDestination(icon: _TabIcon(index: 2), label: '我的'),
-        ],
-      ),
+      bottomBar: showBottomBar
+          ? NavigationBar(
+              selectedIndex: widget.navigationShell.currentIndex,
+              onDestinationSelected: (int index) {
+                BranchRestorationScope.of(context).selectBranch(index);
+                widget.navigationShell.goBranch(
+                  index,
+                  initialLocation: index == widget.navigationShell.currentIndex,
+                );
+              },
+              destinations: const <NavigationDestination>[
+                NavigationDestination(icon: _TabIcon(index: 0), label: '首页'),
+                NavigationDestination(icon: _TabIcon(index: 1), label: '专题'),
+                NavigationDestination(icon: _TabIcon(index: 2), label: '我的'),
+              ],
+            )
+          : null,
     );
   }
 }

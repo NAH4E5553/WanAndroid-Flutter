@@ -63,6 +63,20 @@ RouteBase get $mainShellRouteData => StatefulShellRouteData.$route(
           path: '/profile',
           hasOverriddenOnExit: false,
           factory: $ProfileRouteData._fromState,
+          routes: [
+            GoRouteData.$route(
+              path: 'history',
+              hasOverriddenOnExit: false,
+              factory: $HistoryRouteData._fromState,
+              routes: [
+                GoRouteData.$route(
+                  path: 'read',
+                  hasOverriddenOnExit: false,
+                  factory: $HistoryReaderRouteData._fromState,
+                ),
+              ],
+            ),
+          ],
         ),
       ],
     ),
@@ -155,6 +169,7 @@ mixin $HomePreviewRouteData on GoRouteData {
         articleId: int.parse(state.pathParameters['articleId']!),
         routeInstanceId: state.uri.queryParameters['route-instance-id']!,
         title: state.uri.queryParameters['title']!,
+        url: state.uri.queryParameters['url'] ?? '',
       );
 
   HomePreviewRouteData get _self => this as HomePreviewRouteData;
@@ -165,6 +180,7 @@ mixin $HomePreviewRouteData on GoRouteData {
     queryParams: {
       'route-instance-id': _self.routeInstanceId,
       'title': _self.title,
+      if (_self.url != '') 'url': _self.url,
     },
   );
 
@@ -209,6 +225,7 @@ mixin $TopicsPreviewRouteData on GoRouteData {
         articleId: int.parse(state.pathParameters['articleId']!),
         routeInstanceId: state.uri.queryParameters['route-instance-id']!,
         title: state.uri.queryParameters['title']!,
+        url: state.uri.queryParameters['url'] ?? '',
       );
 
   TopicsPreviewRouteData get _self => this as TopicsPreviewRouteData;
@@ -219,6 +236,7 @@ mixin $TopicsPreviewRouteData on GoRouteData {
     queryParams: {
       'route-instance-id': _self.routeInstanceId,
       'title': _self.title,
+      if (_self.url != '') 'url': _self.url,
     },
   );
 
@@ -255,4 +273,80 @@ mixin $ProfileRouteData on GoRouteData {
 
   @override
   void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $HistoryRouteData on GoRouteData {
+  static HistoryRouteData _fromState(GoRouterState state) => HistoryRouteData(
+    routeInstanceId: state.uri.queryParameters['route-instance-id']!,
+  );
+
+  HistoryRouteData get _self => this as HistoryRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/profile/history',
+    queryParams: {'route-instance-id': _self.routeInstanceId},
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $HistoryReaderRouteData on GoRouteData {
+  static HistoryReaderRouteData _fromState(GoRouterState state) =>
+      HistoryReaderRouteData(
+        routeInstanceId: state.uri.queryParameters['route-instance-id']!,
+        url: state.uri.queryParameters['url']!,
+        title: state.uri.queryParameters['title']!,
+        articleId: _$convertMapValue(
+          'article-id',
+          state.uri.queryParameters,
+          int.tryParse,
+        ),
+      );
+
+  HistoryReaderRouteData get _self => this as HistoryReaderRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/profile/history/read',
+    queryParams: {
+      'route-instance-id': _self.routeInstanceId,
+      'url': _self.url,
+      'title': _self.title,
+      if (_self.articleId != null) 'article-id': _self.articleId!.toString(),
+    },
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+T? _$convertMapValue<T>(
+  String key,
+  Map<String, String> map,
+  T? Function(String) converter,
+) {
+  final value = map[key];
+  return value == null ? null : converter(value);
 }

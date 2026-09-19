@@ -37,9 +37,12 @@ void registerStage2NavigationTests() {
       ),
     );
     await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(tester.getSize(find.byType(PageView).first).height, 156);
 
     await tester.tap(find.text('搜索文章、技术与知识'));
     await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsNothing);
     await tester.enterText(find.byType(EditableText), 'Flutter');
     await tester.pump();
     await tester.tap(find.widgetWithText(FilledButton, '搜索'));
@@ -48,9 +51,14 @@ void registerStage2NavigationTests() {
 
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsOneWidget);
     await tester.tap(find.text('查看更多'));
     await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsNothing);
     expect(find.text('阶段 2 每日一问'), findsOneWidget);
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsOneWidget);
   });
 }
 

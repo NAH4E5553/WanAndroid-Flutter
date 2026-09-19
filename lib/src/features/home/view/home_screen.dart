@@ -242,7 +242,7 @@ class _DailyQuestionSectionState extends State<_DailyQuestionSection> {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: context.spacing.page),
               child: SizedBox(
-                height: 206 + (72 * textScaleGrowth),
+                height: 156 + (72 * textScaleGrowth),
                 child: PageView.builder(
                   controller: _controller,
                   itemCount: widget.state.items.length,
