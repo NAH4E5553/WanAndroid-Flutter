@@ -2,7 +2,7 @@
 
 ## 操作边界
 
-- 项目文件唯一可写目录为 `/Users/sn/Desktop/workplace/wanandroid-flutter`。用户于2026-09-19明确持续授权本项目所需的 Flutter 工具写入共享 SDK 运行缓存 `/Users/sn/flutter/bin/cache`；仅限工具链正常生成/更新缓存，不授权修改 SDK 源码、清理其他项目或其他 App 数据。实际操作仍须遵守系统沙箱及逐次权限审批。
+- 唯一可写目录为 `/Users/sn/Desktop/workplace/wanandroid-flutter`。
 - `/Users/sn/Desktop/workplace/WanAndroid-AI` 仅作为只读行为基线；禁止修改、格式化、构建、提交或清理其中任何文件。
 - 不复制 Android 项目的 `.git`、签名、凭据、`local.properties`、`build/`、`.gradle/` 或真实账号数据。
 - 当前基线固定为 Android 提交 `78cdaade84ef24ebbe825041b499cbe1cd7ee286`；变更基线前必须先说明并确认。
