@@ -18,14 +18,38 @@ void main() {
     'integration_test/reader_history_test.dart',
     'integration_test/stage4_ci_test.dart',
     'android/app/src/debug/res/xml/reader_test_network_security_config.xml',
+    'third_party/webview_flutter_android/README.local-patch.md',
   ]) {
     if (!File(path).existsSync()) failures.add('Missing stage 4 file: $path');
   }
+  const localPatchJava =
+      'third_party/webview_flutter_android/android/src/main/java/'
+      'io/flutter/plugins/webviewflutter/WebViewClientProxyApi.java';
+  const localPatchController =
+      'third_party/webview_flutter_android/lib/src/android_webview_controller.dart';
+  const localPatchConstants =
+      'third_party/webview_flutter_android/lib/src/android_webkit_constants.dart';
   if (File('lib/src/features/home/view/home_preview_screen.dart')
       .existsSync()) {
     failures.add('Stage 1 article placeholder remains in production');
   }
   for (final (path, content) in <(String, String)>[
+    (localPatchJava, 'public boolean onRenderProcessGone('),
+    (
+      localPatchJava,
+      'dev.flutter.local_patch.webview_flutter_android/WebViewClient.onRenderProcessGone',
+    ),
+    (localPatchConstants, 'errorWebContentProcessTerminated = -100'),
+    (localPatchController, 'errorWebContentProcessTerminated'),
+    (
+      localPatchController,
+      'dev.flutter.local_patch.webview_flutter_android/WebViewClient.onRenderProcessGone',
+    ),
+    ('pubspec.yaml', 'third_party/webview_flutter_android'),
+    (
+      'lib/src/features/reader/view/article_reader_screen.dart',
+      'if (kind == ReaderFailureKind.renderer)',
+    ),
     ('lib/src/app/router/app_routes.dart', 'buildArticleReaderScreen('),
     ('lib/src/app/router/app_routes.dart', 'HistoryReaderRouteData'),
     (

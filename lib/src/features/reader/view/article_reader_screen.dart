@@ -179,7 +179,7 @@ class _ArticleReaderScreenState extends ConsumerState<ArticleReaderScreen> {
             if (!_uncertainHttpError) unawaited(_recordHistory(id, uri));
           },
           onWebResourceError: (WebResourceError error) {
-            if (!_current(id) || !_loading) {
+            if (!_current(id)) {
               return;
             }
             final Uri? uri = Uri.tryParse(error.url ?? '');
@@ -191,6 +191,16 @@ class _ArticleReaderScreenState extends ConsumerState<ArticleReaderScreen> {
               WebResourceErrorType.timeout => ReaderFailureKind.timeout,
               _ => ReaderFailureKind.network,
             };
+            // Renderer death can strike long after the page finished loading;
+            // it always invalidates the WebView, so it bypasses the loading
+            // guard that other error kinds require.
+            if (kind == ReaderFailureKind.renderer) {
+              if (!_failed) _fail(id, kind);
+              return;
+            }
+            if (!_loading || _failed) {
+              return;
+            }
             if (ReaderFailureClassifier.resource(
                   activeMainUrl: _activeUrl,
                   callbackUrl: uri,
@@ -228,7 +238,7 @@ class _ArticleReaderScreenState extends ConsumerState<ArticleReaderScreen> {
   }
 
   void _fail(int id, ReaderFailureKind kind) {
-    if (!_current(id)) return;
+    if (!_current(id) || _failed) return;
     _timeout?.cancel();
     setState(() {
       _loading = false;

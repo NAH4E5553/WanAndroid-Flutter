@@ -37,5 +37,15 @@ dev_dependencies:
   json_serializable: ^6.14.1
   riverpod_generator: ^4.0.9
 
+# WanAndroid Flutter local patch (stage 4, 2026-09-21): vendored
+# webview_flutter_android 4.14.1 with an onRenderProcessGone override that
+# keeps the app alive on renderer death and reports
+# WebResourceErrorType.webContentProcessTerminated to Dart (API 26+). See
+# third_party/webview_flutter_android/README.local-patch.md. Upstream has no
+# such callback as of 4.14.1; revisit on every plugin upgrade.
+dependency_overrides:
+  webview_flutter_android:
+    path: third_party/webview_flutter_android
+
 flutter:
   uses-material-design: true
