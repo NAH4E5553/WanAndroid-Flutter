@@ -756,6 +756,14 @@ CI 建议：
 
 2026-09-19 PR回填：[PR #8](https://github.com/NAH4E5553/WanAndroid-Flutter/pull/8)首轮Android Integration因历史路由测试依赖瞬态WebView可见而失败，其他三项通过；修正测试后本地67/67与双端Integration各8/8通过，远端[运行35449173551](https://github.com/NAH4E5553/WanAndroid-Flutter/actions/runs/35449173551)四项全部通过。上段“远端PR/CI未关闭”为本地实施时点的历史记录；PR仍开放，原生专项、视觉/无障碍、真机细项、真实进程恢复及发布门禁继续待验证。
 
+2026-09-19合并回填：PR #8最终head `be0c080`的[运行35449554487](https://github.com/NAH4E5553/WanAndroid-Flutter/actions/runs/35449554487)四项全部通过，squash合并为`9e6e9e1c23747e085964ba96eef3ba459d3b50e8`。上段“PR仍开放”是合并前快照；阶段4继续实施，原生专项、视觉/无障碍、真机细项、真实进程恢复及发布门禁仍待验证。
+
+2026-09-19继续回填：阅读页退出后同URL新身份重入、再释放旧本机延迟响应的受控回归在Android 15与iPhone 18 Pro/iOS27 Simulator各9/9通过；67/67 Unit/Widget、双端Debug构建及静态/结构门禁通过。旧原生连接可能直接关闭，不能据此宣称旧回调送达或原生WebView资源已释放。本轮变更尚未提交/运行远端CI；阶段4其他专项继续待验证。
+
+2026-09-19真机补证：上述阶段4单入口在MI 9/Android 11/API30真机与iPhone 18 Pro/iOS27 Simulator各9/9通过；独立受控两页WebView在MI 9左边缘实际系统滑动后返回网页第一页、不退出阅读器，专项1/1通过。首次夹具过早加载第二页导致前置条件失败，修正后复验通过。用户已授权本项目Flutter工具持续写共享SDK运行缓存，其他App数据不在操作范围。Android完整预测动画/取消、iOS真实边缘、原生WebView释放/渲染终止、视觉/无障碍保持待验证；当前状态以状态记录为准。
+
+2026-09-21原生专项补证：Android系统返回取消/提交（宿主注入真实手势）在API35模拟器与MI 9真机各1/1通过——取消无副作用、提交网页返回；iOS边缘返回在iPhone 18 Pro/iOS27 Simulator 2/2通过——有网页历史canPop=false时边缘拖动禁用、无历史时边缘拖动正常退出。dispose后`sandboxed_process0`渲染进程双端4秒内退出（进程级释放证据）。同时实证`webview_flutter_android 3.16.0`未重写`onRenderProcessGone`：kill渲染进程后整个App被系统杀死（logcat与flutter test退出码79），本方案第9节“网页进程异常”整页失败契约在Android当前插件下不可达，iOS的WKWebContent终止已接线但无法按需触发未执行；是否扩展插件（fork/平台通道）或接受Android平台行为属未确认取舍。三个新专项未加入合并CI入口；预测动画视觉、iOS真机人工手势、逐页视觉/无障碍、真实进程恢复与发布检查仍未关闭；当前状态以状态记录为准。
+
 ### 阶段 5：登录、收藏、主题和我的
 
 - 接入主题持久化和失败回滚。
