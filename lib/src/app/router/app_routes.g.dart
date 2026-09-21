@@ -6,7 +6,34 @@ part of 'app_routes.dart';
 // GoRouterGenerator
 // **************************************************************************
 
-List<RouteBase> get $appRoutes => [$mainShellRouteData];
+List<RouteBase> get $appRoutes => [$loginRouteData, $mainShellRouteData];
+
+RouteBase get $loginRouteData => GoRouteData.$route(
+  path: '/login',
+  hasOverriddenOnExit: false,
+  factory: $LoginRouteData._fromState,
+);
+
+mixin $LoginRouteData on GoRouteData {
+  static LoginRouteData _fromState(GoRouterState state) =>
+      const LoginRouteData();
+
+  @override
+  String get location => GoRouteData.$location('/login');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
 
 RouteBase get $mainShellRouteData => StatefulShellRouteData.$route(
   restorationScopeId: MainShellRouteData.$restorationScopeId,
@@ -75,6 +102,16 @@ RouteBase get $mainShellRouteData => StatefulShellRouteData.$route(
                   factory: $HistoryReaderRouteData._fromState,
                 ),
               ],
+            ),
+            GoRouteData.$route(
+              path: 'collections',
+              hasOverriddenOnExit: false,
+              factory: $CollectionsRouteData._fromState,
+            ),
+            GoRouteData.$route(
+              path: 'theme',
+              hasOverriddenOnExit: false,
+              factory: $ThemeSettingsRouteData._fromState,
             ),
           ],
         ),
@@ -326,6 +363,62 @@ mixin $HistoryReaderRouteData on GoRouteData {
       'title': _self.title,
       if (_self.articleId != null) 'article-id': _self.articleId!.toString(),
     },
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $CollectionsRouteData on GoRouteData {
+  static CollectionsRouteData _fromState(GoRouterState state) =>
+      CollectionsRouteData(
+        routeInstanceId: state.uri.queryParameters['route-instance-id']!,
+      );
+
+  CollectionsRouteData get _self => this as CollectionsRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/profile/collections',
+    queryParams: {'route-instance-id': _self.routeInstanceId},
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $ThemeSettingsRouteData on GoRouteData {
+  static ThemeSettingsRouteData _fromState(GoRouterState state) =>
+      ThemeSettingsRouteData(
+        routeInstanceId: state.uri.queryParameters['route-instance-id']!,
+      );
+
+  ThemeSettingsRouteData get _self => this as ThemeSettingsRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/profile/theme',
+    queryParams: {'route-instance-id': _self.routeInstanceId},
   );
 
   @override

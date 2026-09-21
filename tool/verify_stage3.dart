@@ -24,13 +24,13 @@ void main() {
   for (final (String path, String content) in <(String, String)>[
     (
       'lib/src/data/network/service/wan_api_service.dart',
-      "_get('tree/json', cancellation)",
+      "_get('tree/json', cancellation, null)",
     ),
     (
       'lib/src/data/network/service/wan_api_service.dart',
       r"'article/list/$page/json'",
     ),
-    ('lib/src/app/bootstrap/bootstrap.dart', 'DefaultTopicRepository(network)'),
+    ('lib/src/app/bootstrap/bootstrap.dart', 'DefaultTopicRepository('),
     ('lib/src/features/topics/view/topics_screen.dart', 'PageView.builder('),
     (
       'lib/src/features/topics/view_model/topics_view_model.dart',

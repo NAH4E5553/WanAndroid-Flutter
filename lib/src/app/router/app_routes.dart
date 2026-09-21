@@ -1,16 +1,33 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:wanandroid_flutter/src/app/bootstrap/app_dependencies.dart';
 import 'package:wanandroid_flutter/src/app/router/app_shell.dart';
 import 'package:wanandroid_flutter/src/app/router/branch_restoration_controller.dart';
+import 'package:wanandroid_flutter/src/core/providers.dart';
+import 'package:wanandroid_flutter/src/data/network/session/session_models.dart';
+import 'package:wanandroid_flutter/src/data/network/session/session_store.dart';
+import 'package:wanandroid_flutter/src/data/repository/contract/collection_repository.dart';
+import 'package:wanandroid_flutter/src/features/auth/navigation/auth_navigation.dart';
 import 'package:wanandroid_flutter/src/features/home/navigation/home_navigation.dart';
 import 'package:wanandroid_flutter/src/features/profile/navigation/profile_navigation.dart';
 import 'package:wanandroid_flutter/src/features/reader/navigation/reader_navigation.dart';
 import 'package:wanandroid_flutter/src/features/topics/navigation/topics_navigation.dart';
 import 'package:wanandroid_flutter/src/model/article.dart';
+import 'package:wanandroid_flutter/src/model/collection.dart';
 
 part 'app_routes.g.dart';
+
+@TypedGoRoute<LoginRouteData>(path: '/login')
+class LoginRouteData extends GoRouteData with $LoginRouteData {
+  const LoginRouteData();
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      buildLoginScreen(onBack: () => context.pop());
+}
 
 @TypedStatefulShellRoute<MainShellRouteData>(
   branches: <TypedStatefulShellBranch<StatefulShellBranchData>>[
@@ -45,6 +62,8 @@ part 'app_routes.g.dart';
               path: 'history',
               routes: [TypedGoRoute<HistoryReaderRouteData>(path: 'read')],
             ),
+            TypedGoRoute<CollectionsRouteData>(path: 'collections'),
+            TypedGoRoute<ThemeSettingsRouteData>(path: 'theme'),
           ],
         ),
       ],
@@ -173,15 +192,23 @@ class HomePreviewRouteData extends GoRouteData with $HomePreviewRouteData {
     return MaterialPage<void>(
       key: state.pageKey,
       restorationId: routeInstanceId,
-      child: buildArticleReaderScreen(
-        articleId: articleId,
-        title: title,
-        url: url,
-        onExit: () {
-          recordPop();
-          context.pop();
-        },
-        onPopped: recordPop,
+      child: Consumer(
+        builder: (BuildContext context, WidgetRef ref, _) =>
+            buildArticleReaderScreen(
+              articleId: articleId,
+              title: title,
+              url: url,
+              onExit: () {
+                recordPop();
+                context.pop();
+              },
+              onPopped: recordPop,
+              collectState: () => _collectState(ref, articleId),
+              onToggleCollect: (CollectionCollectIntent intent) =>
+                  _toggleCollect(ref, intent),
+              onLogin: () =>
+                  unawaited(const LoginRouteData().push<void>(context)),
+            ),
       ),
     );
   }
@@ -231,15 +258,23 @@ class TopicsPreviewRouteData extends GoRouteData with $TopicsPreviewRouteData {
     return MaterialPage<void>(
       key: state.pageKey,
       restorationId: routeInstanceId,
-      child: buildArticleReaderScreen(
-        articleId: articleId,
-        title: title,
-        url: url,
-        onExit: () {
-          recordPop();
-          context.pop();
-        },
-        onPopped: recordPop,
+      child: Consumer(
+        builder: (BuildContext context, WidgetRef ref, _) =>
+            buildArticleReaderScreen(
+              articleId: articleId,
+              title: title,
+              url: url,
+              onExit: () {
+                recordPop();
+                context.pop();
+              },
+              onPopped: recordPop,
+              collectState: () => _collectState(ref, articleId),
+              onToggleCollect: (CollectionCollectIntent intent) =>
+                  _toggleCollect(ref, intent),
+              onLogin: () =>
+                  unawaited(const LoginRouteData().push<void>(context)),
+            ),
       ),
     );
   }
@@ -258,7 +293,71 @@ class ProfileRouteData extends GoRouteData with $ProfileRouteData {
       controller.push(2, route.location);
       unawaited(route.push<void>(context));
     },
+    onCollectionsTap: () {
+      final controller = BranchRestorationScope.of(context);
+      final route = CollectionsRouteData(
+        routeInstanceId: controller.nextRouteInstanceId(),
+      );
+      controller.push(2, route.location);
+      unawaited(route.push<void>(context));
+    },
+    onThemeTap: () {
+      final controller = BranchRestorationScope.of(context);
+      final route = ThemeSettingsRouteData(
+        routeInstanceId: controller.nextRouteInstanceId(),
+      );
+      controller.push(2, route.location);
+      unawaited(route.push<void>(context));
+    },
+    onLoginTap: () => unawaited(const LoginRouteData().push<void>(context)),
   );
+}
+
+class CollectionsRouteData extends GoRouteData with $CollectionsRouteData {
+  const CollectionsRouteData({required this.routeInstanceId});
+
+  final String routeInstanceId;
+
+  @override
+  Page<void> buildPage(BuildContext context, GoRouterState state) {
+    final controller = BranchRestorationScope.of(context);
+    final currentLocation = location;
+    void recordPop() => controller.pop(2, currentLocation);
+    return MaterialPage<void>(
+      key: state.pageKey,
+      restorationId: routeInstanceId,
+      child: buildCollectionsScreen(
+        onBack: () {
+          recordPop();
+          context.pop();
+        },
+        onLoginTap: () => unawaited(const LoginRouteData().push<void>(context)),
+      ),
+    );
+  }
+}
+
+class ThemeSettingsRouteData extends GoRouteData with $ThemeSettingsRouteData {
+  const ThemeSettingsRouteData({required this.routeInstanceId});
+
+  final String routeInstanceId;
+
+  @override
+  Page<void> buildPage(BuildContext context, GoRouterState state) {
+    final controller = BranchRestorationScope.of(context);
+    final currentLocation = location;
+    void recordPop() => controller.pop(2, currentLocation);
+    return MaterialPage<void>(
+      key: state.pageKey,
+      restorationId: routeInstanceId,
+      child: buildThemeSettingsScreen(
+        onBack: () {
+          recordPop();
+          context.pop();
+        },
+      ),
+    );
+  }
 }
 
 class HistoryRouteData extends GoRouteData with $HistoryRouteData {
@@ -316,18 +415,63 @@ class HistoryReaderRouteData extends GoRouteData with $HistoryReaderRouteData {
     return MaterialPage<void>(
       key: state.pageKey,
       restorationId: routeInstanceId,
-      child: buildArticleReaderScreen(
-        articleId: articleId,
-        title: title,
-        url: url,
-        onExit: () {
-          recordPop();
-          context.pop();
-        },
-        onPopped: recordPop,
+      child: Consumer(
+        builder: (BuildContext context, WidgetRef ref, _) =>
+            buildArticleReaderScreen(
+              articleId: articleId,
+              title: title,
+              url: url,
+              onExit: () {
+                recordPop();
+                context.pop();
+              },
+              onPopped: recordPop,
+              collectState: () => _collectState(ref, articleId),
+              onToggleCollect: (CollectionCollectIntent intent) =>
+                  _toggleCollect(ref, intent),
+              onLogin: () =>
+                  unawaited(const LoginRouteData().push<void>(context)),
+            ),
       ),
     );
   }
+}
+
+CollectMenuState? _collectState(WidgetRef ref, int? articleId) {
+  final SessionStore store = ref.read(sessionStoreProvider);
+  final CollectionRepository repository = ref.read(
+    collectionRepositoryProvider,
+  );
+  final SessionSnapshot snapshot = store.snapshot;
+  if (!snapshot.authenticated || articleId == null) {
+    return CollectMenuState();
+  }
+  final CollectionStatus status = repository.current.status(
+    CollectionTarget(articleId, null),
+  );
+  return CollectMenuState(
+    authenticated: true,
+    collected: status.collected,
+    busy: status.busy,
+    generation: snapshot.generation,
+  );
+}
+
+void _toggleCollect(WidgetRef ref, CollectionCollectIntent intent) {
+  final CollectionRepository repository = ref.read(
+    collectionRepositoryProvider,
+  );
+  final int? articleId = intent.articleId;
+  if (articleId == null) {
+    return;
+  }
+  unawaited(
+    repository.setCollected(
+      intent.generation,
+      CollectionTarget(articleId, null),
+      !(intent.collected ?? false),
+    ),
+  );
 }
 
 void _pushArticle(BuildContext context, Article article) {

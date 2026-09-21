@@ -57,19 +57,41 @@ void main() {
       'DefaultReadingHistoryRepository(',
     ),
     (
+      'lib/src/app/bootstrap/bootstrap.dart',
+      'dependencies.collectionRepository',
+    ),
+    ('lib/src/core/ui/swipe_reveal_action_item.dart', 'onHorizontalDragEnd'),
+    (
+      'lib/src/features/profile/view/reading_history_screen.dart',
+      'SwipeRevealActionItem(',
+    ),
+    (
       'lib/src/features/reader/view/article_reader_screen.dart',
       'WebViewWidget(',
     ),
-    (
-      'lib/src/features/profile/view/reading_history_screen.dart',
-      'onHorizontalDragEnd:',
-    ),
+
     (
       'android/app/src/debug/AndroidManifest.xml',
       'reader_test_network_security_config',
     ),
   ]) {
     final file = File(path);
+    if (!file.existsSync() || !file.readAsStringSync().contains(content)) {
+      failures.add('$path does not contain: $content');
+    }
+  }
+  for (final (path, content) in <(String, String)>[
+    (
+      'lib/src/app/bootstrap/bootstrap.dart',
+      'dependencies.collectionRepository',
+    ),
+    ('lib/src/core/ui/swipe_reveal_action_item.dart', 'onHorizontalDragEnd'),
+    (
+      'lib/src/features/profile/view/reading_history_screen.dart',
+      'SwipeRevealActionItem(',
+    ),
+  ]) {
+    final File file = File(path);
     if (!file.existsSync() || !file.readAsStringSync().contains(content)) {
       failures.add('$path does not contain: $content');
     }

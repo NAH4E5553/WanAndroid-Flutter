@@ -50,7 +50,7 @@ void main() {
   _expectContains(
     failures,
     'lib/src/app/bootstrap/bootstrap.dart',
-    'DefaultArticleRepository(network)',
+    'DefaultArticleRepository(',
   );
   _expectContains(
     failures,

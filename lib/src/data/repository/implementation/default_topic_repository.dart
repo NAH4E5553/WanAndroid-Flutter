@@ -5,13 +5,24 @@ import 'package:wanandroid_flutter/src/data/mapper/wan_response_mapper.dart';
 import 'package:wanandroid_flutter/src/data/network/article_network_data_source.dart';
 import 'package:wanandroid_flutter/src/data/network/dto/article_dto.dart';
 import 'package:wanandroid_flutter/src/data/network/dto/wan_page_dto.dart';
+import 'package:wanandroid_flutter/src/data/repository/contract/collection_repository.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/topic_repository.dart';
 import 'package:wanandroid_flutter/src/model/article.dart';
 import 'package:wanandroid_flutter/src/model/page_result.dart';
 import 'package:wanandroid_flutter/src/model/topic.dart';
 
 final class DefaultTopicRepository implements TopicRepository {
-  const DefaultTopicRepository(this._source);
+  DefaultTopicRepository(this._source, [CollectionRepository? collections])
+    : _collections = collections;
+
+  final CollectionRepository? _collections;
+
+  Future<DataResult<PageResult<Article>>> _merge(
+    Future<DataResult<PageResult<Article>>> Function() load,
+  ) {
+    final CollectionRepository? collections = _collections;
+    return collections == null ? load() : collections.articlePage(load);
+  }
 
   final ArticleNetworkDataSource _source;
 
@@ -59,20 +70,22 @@ final class DefaultTopicRepository implements TopicRepository {
     int categoryId,
     int page,
     RequestCancellation cancellation,
-  ) => requestWithData<PageResult<Article>>(
-    request: () => _source.topicArticles(categoryId, page, cancellation),
-    cancellation: cancellation,
-    decode: (Object? data) {
-      final WanPageDto<ArticleDto> dto = WanPageDto<ArticleDto>.fromJson(
-        data,
-        ArticleDto.fromJson,
-      );
-      cancellation.throwIfCancelled();
-      return PageResult<Article>(
-        items: dto.datas.map(mapArticle).toList(growable: false),
-        nextPage: dto.over ? null : page + 1,
-      );
-    },
+  ) => _merge(
+    () => requestWithData<PageResult<Article>>(
+      request: () => _source.topicArticles(categoryId, page, cancellation),
+      cancellation: cancellation,
+      decode: (Object? data) {
+        final WanPageDto<ArticleDto> dto = WanPageDto<ArticleDto>.fromJson(
+          data,
+          ArticleDto.fromJson,
+        );
+        cancellation.throwIfCancelled();
+        return PageResult<Article>(
+          items: dto.datas.map(mapArticle).toList(growable: false),
+          nextPage: dto.over ? null : page + 1,
+        );
+      },
+    ),
   );
 }
 

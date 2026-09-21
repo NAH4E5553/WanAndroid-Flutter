@@ -7,6 +7,7 @@ import 'package:wanandroid_flutter/src/app/app.dart';
 import 'package:wanandroid_flutter/src/app/router/app_shell.dart';
 import 'package:wanandroid_flutter/src/app/router/branch_restoration_controller.dart';
 import 'package:wanandroid_flutter/src/core/cancellation/request_cancellation.dart';
+import 'package:wanandroid_flutter/src/core/providers.dart';
 import 'package:wanandroid_flutter/src/core/result/data_result.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/article_repository.dart';
 import 'package:wanandroid_flutter/src/features/home/view_model/home_dependencies.dart';
@@ -14,6 +15,7 @@ import 'package:wanandroid_flutter/src/features/topics/view_model/topics_depende
 import 'package:wanandroid_flutter/src/model/article.dart';
 import 'package:wanandroid_flutter/src/model/page_result.dart';
 
+import '../test/support/fake_session_repositories.dart';
 import '../test/support/fixed_topic_repository.dart';
 
 void main() {
@@ -28,6 +30,10 @@ void registerNavigationRestorationTests() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+          collectionRepositoryProvider.overrideWithValue(
+            FakeCollectionRepository(),
+          ),
           articleRepositoryProvider.overrideWithValue(
             _NavigationArticleRepository(),
           ),
