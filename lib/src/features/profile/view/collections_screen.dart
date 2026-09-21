@@ -6,6 +6,7 @@ import 'package:wanandroid_flutter/src/core/providers.dart';
 import 'package:wanandroid_flutter/src/core/result/data_result.dart';
 import 'package:wanandroid_flutter/src/core/ui/app_scaffold.dart';
 import 'package:wanandroid_flutter/src/core/ui/app_top_bar.dart';
+import 'package:wanandroid_flutter/src/core/ui/article_card.dart';
 import 'package:wanandroid_flutter/src/core/ui/swipe_reveal_action_item.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/collection_repository.dart';
 import 'package:wanandroid_flutter/src/model/collection.dart';
@@ -16,11 +17,13 @@ class CollectionsScreen extends ConsumerStatefulWidget {
   const CollectionsScreen({
     required this.onBack,
     required this.onLoginTap,
+    required this.onArticleTap,
     super.key,
   });
 
   final VoidCallback onBack;
   final VoidCallback onLoginTap;
+  final void Function(String url, String title, int? articleId) onArticleTap;
 
   @override
   ConsumerState<CollectionsScreen> createState() => _CollectionsScreenState();
@@ -236,16 +239,16 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
             onAction: _busyKeys.contains(item.target.key)
                 ? null
                 : () => _remove(item),
-            child: ListTile(
-              title: Text(
-                item.article.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              subtitle: Text(item.article.publishedAt),
+            child: ArticleCard(
+              article: item.article,
+              padding: EdgeInsets.zero,
               onTap: _busyKeys.contains(item.target.key)
-                  ? null
-                  : () => setState(() => _revealedKeys.add(item.target.key)),
+                  ? () {}
+                  : () => widget.onArticleTap(
+                      item.article.url,
+                      item.article.title,
+                      item.target.articleId,
+                    ),
             ),
           );
         },

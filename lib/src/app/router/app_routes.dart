@@ -62,7 +62,10 @@ class LoginRouteData extends GoRouteData with $LoginRouteData {
               path: 'history',
               routes: [TypedGoRoute<HistoryReaderRouteData>(path: 'read')],
             ),
-            TypedGoRoute<CollectionsRouteData>(path: 'collections'),
+            TypedGoRoute<CollectionsRouteData>(
+              path: 'collections',
+              routes: [TypedGoRoute<CollectionsReaderRouteData>(path: 'read')],
+            ),
             TypedGoRoute<ThemeSettingsRouteData>(path: 'theme'),
           ],
         ),
@@ -332,6 +335,60 @@ class CollectionsRouteData extends GoRouteData with $CollectionsRouteData {
           context.pop();
         },
         onLoginTap: () => unawaited(const LoginRouteData().push<void>(context)),
+        onArticleTap: (String url, String title, int? articleId) {
+          final route = CollectionsReaderRouteData(
+            routeInstanceId: controller.nextRouteInstanceId(),
+            url: url,
+            title: title,
+            articleId: articleId,
+          );
+          controller.push(2, route.location);
+          unawaited(route.push<void>(context));
+        },
+      ),
+    );
+  }
+}
+
+class CollectionsReaderRouteData extends GoRouteData
+    with $CollectionsReaderRouteData {
+  const CollectionsReaderRouteData({
+    required this.routeInstanceId,
+    required this.url,
+    required this.title,
+    this.articleId,
+  });
+
+  final String routeInstanceId;
+  final String url;
+  final String title;
+  final int? articleId;
+
+  @override
+  Page<void> buildPage(BuildContext context, GoRouterState state) {
+    final controller = BranchRestorationScope.of(context);
+    final currentLocation = location;
+    void recordPop() => controller.pop(2, currentLocation);
+    return MaterialPage<void>(
+      key: state.pageKey,
+      restorationId: routeInstanceId,
+      child: Consumer(
+        builder: (BuildContext context, WidgetRef ref, _) =>
+            buildArticleReaderScreen(
+              articleId: articleId,
+              title: title,
+              url: url,
+              onExit: () {
+                recordPop();
+                context.pop();
+              },
+              onPopped: recordPop,
+              collectState: () => _collectState(ref, articleId),
+              onToggleCollect: (CollectionCollectIntent intent) =>
+                  _toggleCollect(ref, intent),
+              onLogin: () =>
+                  unawaited(const LoginRouteData().push<void>(context)),
+            ),
       ),
     );
   }

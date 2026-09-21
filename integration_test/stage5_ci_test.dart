@@ -20,6 +20,17 @@ import 'package:wanandroid_flutter/src/model/search_history.dart';
 
 import '../test/support/fixed_topic_repository.dart';
 
+Future<void> _waitFor(WidgetTester tester, Finder finder) async {
+  final Duration step = const Duration(milliseconds: 200);
+  for (int waited = 0; waited < 10000; waited += step.inMilliseconds) {
+    await tester.pump(step);
+    if (finder.evaluate().isNotEmpty) {
+      return;
+    }
+  }
+  fail('Expected widget did not appear: $finder');
+}
+
 Future<void> _settle(WidgetTester tester) async {
   // Fixed-duration pumps: the home carousel animates periodically, so
   // pumpAndSettle can wait forever. Explicit pumps keep the entry deterministic.
@@ -63,7 +74,7 @@ void main() {
 
     // Profile tab shows the guest state and entries.
     await tester.tap(find.text('我的'));
-    await _settle(tester);
+    await _waitFor(tester, find.text('未登录'));
     expect(find.text('未登录'), findsOneWidget);
     expect(find.text('我的收藏'), findsOneWidget);
     expect(find.text('外观与主题'), findsOneWidget);

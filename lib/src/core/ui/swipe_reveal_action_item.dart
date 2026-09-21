@@ -14,6 +14,7 @@ class SwipeRevealActionItem extends StatefulWidget {
     required this.onAction,
     required this.actionIcon,
     required this.child,
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     super.key,
   });
 
@@ -24,6 +25,7 @@ class SwipeRevealActionItem extends StatefulWidget {
   final VoidCallback? onAction;
   final IconData actionIcon;
   final Widget child;
+  final EdgeInsetsGeometry padding;
 
   @override
   State<SwipeRevealActionItem> createState() => _SwipeRevealActionItemState();
@@ -37,7 +39,7 @@ class _SwipeRevealActionItemState extends State<SwipeRevealActionItem> {
   Widget build(BuildContext context) {
     final ColorScheme colors = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: widget.padding,
       child: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) =>
             ClipRRect(

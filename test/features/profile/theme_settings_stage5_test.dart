@@ -10,6 +10,14 @@ import 'package:wanandroid_flutter/src/data/repository/contract/auth_repository.
 import 'package:wanandroid_flutter/src/features/auth/view/login_screen.dart';
 import 'package:wanandroid_flutter/src/features/profile/view/theme_settings_screen.dart';
 
+class _MemoryPrefs implements ThemeStorage {
+  @override
+  Future<({WanPalette palette, ThemeMode mode})?> read() async => null;
+
+  @override
+  Future<void> write(WanPalette palette, ThemeMode mode) async {}
+}
+
 class _FailingThemePreferences implements ThemeStorage {
   @override
   Future<({WanPalette palette, ThemeMode mode})?> read() async => null;
@@ -44,6 +52,36 @@ void main() {
     expect(controller.saveFailed, isTrue);
     expect(controller.palette, WanPalette.slateBlue);
     expect(find.text('主题保存失败，已恢复原设置'), findsOneWidget);
+  });
+
+  testWidgets('theme page shows palette cards, swatches and mode segments', (
+    WidgetTester tester,
+  ) async {
+    final ThemeController controller = ThemeController(
+      preferences: _MemoryPrefs(),
+    );
+    await controller.load();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [themeControllerProvider.overrideWithValue(controller)],
+        child: MaterialApp(home: ThemeSettingsScreen(onBack: () {})),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // Four palette cards by name.
+    for (final String name in <String>['墨青绿', '石板蓝', '暖琥珀', '莓果玫瑰']) {
+      expect(find.text(name), findsOneWidget);
+    }
+    // Selected card carries exactly one check badge (default 石板蓝).
+    expect(find.byIcon(Icons.check), findsOneWidget);
+    // Mode segments exist.
+    expect(find.text('跟随系统'), findsOneWidget);
+    expect(find.text('浅色'), findsOneWidget);
+    expect(find.text('深色'), findsOneWidget);
+    // Selecting a card applies the palette.
+    await tester.tap(find.text('暖琥珀'));
+    await tester.pumpAndSettle();
+    expect(controller.palette, WanPalette.warmAmber);
   });
 
   testWidgets('login rejects a malformed phone number before submitting', (
