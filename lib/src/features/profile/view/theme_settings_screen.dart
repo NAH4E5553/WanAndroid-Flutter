@@ -184,11 +184,23 @@ class _PaletteCard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Row(
-                spacing: 12,
                 children: <Widget>[
-                  _dot(swatches.dark),
-                  _dot(swatches.mid),
-                  _dot(swatches.light),
+                  for (final Color color in <Color>[
+                    swatches.dark,
+                    swatches.mid,
+                    swatches.light,
+                  ])
+                    Expanded(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 32),
+                          child: AspectRatio(
+                            aspectRatio: 1,
+                            child: _dot(color),
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ],
