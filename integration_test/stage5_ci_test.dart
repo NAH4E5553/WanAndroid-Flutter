@@ -20,6 +20,13 @@ import 'package:wanandroid_flutter/src/model/search_history.dart';
 
 import '../test/support/fixed_topic_repository.dart';
 
+Future<void> _settle(WidgetTester tester) async {
+  // Fixed-duration pumps: the home carousel animates periodically, so
+  // pumpAndSettle can wait forever. Explicit pumps keep the entry deterministic.
+  await tester.pump(const Duration(milliseconds: 400));
+  await tester.pump(const Duration(milliseconds: 400));
+}
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -52,21 +59,21 @@ void main() {
         child: const WanAndroidApp(),
       ),
     );
-    await tester.pumpAndSettle();
+    await _settle(tester);
 
     // Profile tab shows the guest state and entries.
     await tester.tap(find.text('我的'));
-    await tester.pumpAndSettle();
+    await _settle(tester);
     expect(find.text('未登录'), findsOneWidget);
     expect(find.text('我的收藏'), findsOneWidget);
     expect(find.text('外观与主题'), findsOneWidget);
 
     // Theme settings apply a palette immediately.
     await tester.tap(find.text('外观与主题'));
-    await tester.pumpAndSettle();
+    await _settle(tester);
     expect(find.text('配色风格'), findsOneWidget);
     await tester.tap(find.text('莓果玫瑰'));
-    await tester.pumpAndSettle();
+    await _settle(tester);
     // ignore: avoid_print
     print(
       'STAGE5_DEBUG palette=${theme.palette} saveFailed=${theme.saveFailed} saving=${theme.saving}',
@@ -75,9 +82,9 @@ void main() {
 
     // The collections screen gates on login while the session is guest.
     await tester.tap(find.byTooltip('返回').last);
-    await tester.pumpAndSettle();
+    await _settle(tester);
     await tester.tap(find.text('我的收藏'));
-    await tester.pumpAndSettle();
+    await _settle(tester);
     expect(find.text('请登录后查看收藏'), findsOneWidget);
   });
 }
