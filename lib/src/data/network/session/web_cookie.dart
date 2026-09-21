@@ -123,11 +123,12 @@ class WebCookie {
           .add(Duration(seconds: maxAge))
           .millisecondsSinceEpoch;
     }
+    // Session cookies (no Expires/Max-Age) never expire while the process
+    // lives — model them with a far-future stamp so they are not treated as
+    // expired; `persistent` still keeps them out of encrypted storage.
+    const int sessionFarFuture = 4102444800000; // 2100-01-01 UTC
     final bool persistent = expiresAt != null || (maxAge ?? 0) > 0;
-    final int expires = expiresAt ?? 0;
-    if (persistent && expires <= 0) {
-      return null;
-    }
+    final int expires = persistent ? expiresAt! : sessionFarFuture;
     return WebCookie(
       name: name,
       value: value,
@@ -138,11 +139,12 @@ class WebCookie {
     );
   }
 
-  /// Parses the RFC 1123 date format servers use for Expires
-  /// ("Wed, 21 Oct 2015 07:28:00 GMT").
+  /// Parses Expires dates in both the RFC 1123 form ("Wed, 21 Oct 2015
+  /// 07:28:00 GMT") and the dashed Netscape form some servers emit
+  /// ("Wed, 21-Oct-2026 13:36:34 GMT").
   static int? _parseHttpDate(String value) {
     final RegExpMatch? match = RegExp(
-      r'(\d{1,2}) ([A-Za-z]{3}) (\d{2,4}) (\d{2}):(\d{2}):(\d{2})',
+      r'(\d{1,2})[- ]([A-Za-z]{3})[- ](\d{2,4}) (\d{2}):(\d{2}):(\d{2})',
     ).firstMatch(value);
     if (match == null) {
       return null;

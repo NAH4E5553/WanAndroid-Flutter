@@ -19,6 +19,9 @@ Future<DataResult<T>> requestWithData<T>({
       return DataFailure<T>(DataError.sessionExpired);
     }
     if (rawCode != 0) {
+      // Server-provided message aids diagnosis; safe to log (no credentials).
+      // ignore: avoid_print
+      print('[wan] errorCode=$rawCode errorMsg=${response['errorMsg']}');
       return DataFailure<T>(DataError.service);
     }
     if (!response.containsKey('data') || response['data'] == null) {
@@ -57,9 +60,13 @@ Future<DataResult<void>> requestWithoutData({
       return const DataFailure<void>(DataError.invalidResponse);
     }
     if (rawCode == -1001) {
+      // ignore: avoid_print
+      print('[wan] errorCode=-1001 session expired');
       return const DataFailure<void>(DataError.sessionExpired);
     }
     if (rawCode != 0) {
+      // ignore: avoid_print
+      print('[wan] errorCode=$rawCode errorMsg=${response['errorMsg']}');
       return const DataFailure<void>(DataError.service);
     }
     cancellation.throwIfCancelled();
