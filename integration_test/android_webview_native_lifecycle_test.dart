@@ -20,15 +20,18 @@ import 'package:wanandroid_flutter/src/features/reader/view/article_reader_scree
 ///   the sandboxed WebView renderer process exits and reports back.
 /// - /report: host result of the renderer observation; asserted in app.
 /// - /reopen: a fresh reader instance is opened for the kill phase.
-/// - /hold: the reader stays in the foreground while the host kills the
-///   renderer process (root/emulator only) to observe the default behavior of
-///   webview_flutter_android (no onRenderProcessGone override).
-/// - /done or /health: finishes the run.
+/// - /assert-renderer-failure: after the host kills the renderer (root or
+///   emulator only), the reader must stay alive, show the renderer failure
+///   UI, and keep the history intact.
+/// - /retry: the reader recovers through the retry button.
+/// - /done: finishes the run; `scope=dispose` (devices without root, where the
+///   renderer cannot be killed) skips the kill-phase assertions that
+///   `scope=full` (default) requires.
 /// Opt in with --dart-define=RUN_WEBVIEW_NATIVE_LIFECYCLE=true.
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('dispose releases reader; renderer kill behaviour observed', (
+  testWidgets('renderer death shows failure and recovers; dispose releases', (
     tester,
   ) async {
     expect(defaultTargetPlatform, TargetPlatform.android);
@@ -64,7 +67,6 @@ void main() {
     );
 
     final phases = <String, Object?>{};
-    var rendererAfterDispose = 'unknown';
     final done = Completer<void>();
     final pendingCommands = <String>[];
     final commandResults = <String, Completer<bool>>{};
@@ -75,18 +77,40 @@ void main() {
       return result.future.timeout(const Duration(seconds: 90));
     }
 
+    Future<void> pumpFor(FutureOr<bool> Function() condition) async {
+      for (var i = 0; i < 120; i++) {
+        if (await condition()) return;
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      fail('Lifecycle fixture condition did not occur');
+    }
+
     Future<void> perform(String command) async {
       switch (command) {
         case 'ready':
         case 'reopen':
           await tester.pumpWidget(reader());
-          await _waitForHistoryRow(history);
+          await pumpFor(() async => (await history.page()).isNotEmpty);
           commandResults.remove(command)?.complete(true);
         case 'dispose':
           await tester.pumpWidget(
             const MaterialApp(home: Scaffold(body: Text('Reader closed'))),
           );
           await tester.pump(const Duration(seconds: 1));
+          commandResults.remove(command)?.complete(true);
+        case 'assert-renderer-failure':
+          await pumpFor(() => find.text('网页进程异常').evaluate().isNotEmpty);
+          phases['rendererFailureShown'] = true;
+          commandResults.remove(command)?.complete(true);
+        case 'retry':
+          await tester.tap(find.text('重试'));
+          await pumpFor(
+            () =>
+                find.text('网页进程异常').evaluate().isEmpty &&
+                find.byType(ArticleReaderScreen).evaluate().isNotEmpty,
+          );
+          phases['recoveredAfterRetry'] = true;
           commandResults.remove(command)?.complete(true);
       }
     }
@@ -112,31 +136,20 @@ void main() {
         case 'ready':
         case 'dispose':
         case 'reopen':
+        case 'assert-renderer-failure':
+        case 'retry':
           final ok = await enqueue(phase);
           await respond(request, <String, Object?>{'ok': ok});
         case 'report':
-          rendererAfterDispose =
-              request.uri.queryParameters['renderer'] ?? 'unknown';
+          final renderer = request.uri.queryParameters['renderer'] ?? 'unknown';
           phases['rendererAfterDisposeReported'] =
-              rendererAfterDispose == 'gone' ||
-              rendererAfterDispose == 'present';
+              renderer == 'gone' || renderer == 'present';
           await respond(request, <String, Object?>{
             'ok': true,
-            'renderer': rendererAfterDispose,
+            'renderer': renderer,
           });
-        case 'hold':
-          await respond(request, <String, Object?>{
-            'ok': true,
-            'holding': true,
-          });
-        case 'health':
-          await respond(request, <String, Object?>{
-            'ok': true,
-            'rendererFailureText': find.text('网页进程异常').evaluate().isNotEmpty,
-            'renderer': rendererAfterDispose,
-          });
-          if (!done.isCompleted) done.complete();
         case 'done':
+          phases['scope'] = request.uri.queryParameters['scope'] ?? 'full';
           await respond(request, <String, Object?>{
             'ok': true,
             'phases': phases,
@@ -163,14 +176,11 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
       }
     }
+    expect(phases['scope'], isIn(<String>['full', 'dispose']));
     expect(phases['rendererAfterDisposeReported'], true);
+    if (phases['scope'] == 'full') {
+      expect(phases['rendererFailureShown'], true);
+      expect(phases['recoveredAfterRetry'], true);
+    }
   }, skip: !const bool.fromEnvironment('RUN_WEBVIEW_NATIVE_LIFECYCLE'));
-}
-
-Future<void> _waitForHistoryRow(DefaultReadingHistoryRepository history) async {
-  for (var i = 0; i < 120; i++) {
-    if ((await history.page()).isNotEmpty) return;
-    await Future<void>.delayed(const Duration(milliseconds: 100));
-  }
-  fail('History row was not written for the lifecycle fixture');
 }

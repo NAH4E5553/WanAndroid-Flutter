@@ -762,7 +762,7 @@ CI 建议：
 
 2026-09-19真机补证：上述阶段4单入口在MI 9/Android 11/API30真机与iPhone 18 Pro/iOS27 Simulator各9/9通过；独立受控两页WebView在MI 9左边缘实际系统滑动后返回网页第一页、不退出阅读器，专项1/1通过。首次夹具过早加载第二页导致前置条件失败，修正后复验通过。用户已授权本项目Flutter工具持续写共享SDK运行缓存，其他App数据不在操作范围。Android完整预测动画/取消、iOS真实边缘、原生WebView释放/渲染终止、视觉/无障碍保持待验证；当前状态以状态记录为准。
 
-2026-09-21原生专项补证：Android系统返回取消/提交（宿主注入真实手势）在API35模拟器与MI 9真机各1/1通过——取消无副作用、提交网页返回；iOS边缘返回在iPhone 18 Pro/iOS27 Simulator 2/2通过——有网页历史canPop=false时边缘拖动禁用、无历史时边缘拖动正常退出。dispose后`sandboxed_process0`渲染进程双端4秒内退出（进程级释放证据）。同时实证`webview_flutter_android 3.16.0`未重写`onRenderProcessGone`：kill渲染进程后整个App被系统杀死（logcat与flutter test退出码79），本方案第9节“网页进程异常”整页失败契约在Android当前插件下不可达，iOS的WKWebContent终止已接线但无法按需触发未执行；是否扩展插件（fork/平台通道）或接受Android平台行为属未确认取舍。三个新专项未加入合并CI入口；预测动画视觉、iOS真机人工手势、逐页视觉/无障碍、真实进程恢复与发布检查仍未关闭；当前状态以状态记录为准。
+2026-09-21原生专项补证：Android系统返回取消/提交（宿主注入真实手势）在API35模拟器与MI 9真机各1/1通过——取消无副作用、提交网页返回；iOS边缘返回在iPhone 18 Pro/iOS27 Simulator 2/2通过——有网页历史canPop=false时边缘拖动禁用、无历史时边缘拖动正常退出。dispose后`sandboxed_process0`渲染进程双端4秒内退出（进程级释放证据）。同时实证`webview_flutter_android 3.16.0`未重写`onRenderProcessGone`：kill渲染进程后整个App被系统杀死（logcat与flutter test退出码79），本方案第9节“网页进程异常”整页失败契约在Android当前插件下不可达，iOS的WKWebContent终止已接线但无法按需触发未执行；用户已确认方案A：third_party/webview_flutter_android内嵌4.14.1副本（path override）重写onRenderProcessGone保活App并上报渲染终止，受控kill场景验证通过（App存活+失败UI+重试恢复），MI 9真机补测合并入口9/9与dispose释放1/1（无root，kill场景仅模拟器可触发，测试新增scope参数区分真机/模拟器范围）；API 24/25无该回调仍为默认行为。三个新专项未加入合并CI入口；预测动画视觉、iOS真机人工手势、iOS渲染终止按需触发、逐页视觉/无障碍、真实进程恢复与发布检查仍未关闭；当前状态以状态记录为准。
 
 ### 阶段 5：登录、收藏、主题和我的
 
