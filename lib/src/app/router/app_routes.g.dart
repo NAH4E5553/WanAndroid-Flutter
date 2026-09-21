@@ -107,6 +107,13 @@ RouteBase get $mainShellRouteData => StatefulShellRouteData.$route(
               path: 'collections',
               hasOverriddenOnExit: false,
               factory: $CollectionsRouteData._fromState,
+              routes: [
+                GoRouteData.$route(
+                  path: 'read',
+                  hasOverriddenOnExit: false,
+                  factory: $CollectionsReaderRouteData._fromState,
+                ),
+              ],
             ),
             GoRouteData.$route(
               path: 'theme',
@@ -391,6 +398,46 @@ mixin $CollectionsRouteData on GoRouteData {
   String get location => GoRouteData.$location(
     '/profile/collections',
     queryParams: {'route-instance-id': _self.routeInstanceId},
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $CollectionsReaderRouteData on GoRouteData {
+  static CollectionsReaderRouteData _fromState(GoRouterState state) =>
+      CollectionsReaderRouteData(
+        routeInstanceId: state.uri.queryParameters['route-instance-id']!,
+        url: state.uri.queryParameters['url']!,
+        title: state.uri.queryParameters['title']!,
+        articleId: _$convertMapValue(
+          'article-id',
+          state.uri.queryParameters,
+          int.tryParse,
+        ),
+      );
+
+  CollectionsReaderRouteData get _self => this as CollectionsReaderRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/profile/collections/read',
+    queryParams: {
+      'route-instance-id': _self.routeInstanceId,
+      'url': _self.url,
+      'title': _self.title,
+      if (_self.articleId != null) 'article-id': _self.articleId!.toString(),
+    },
   );
 
   @override

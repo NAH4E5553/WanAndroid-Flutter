@@ -8,8 +8,7 @@ import 'package:wanandroid_flutter/src/core/theme/wan_theme.dart';
 import 'package:wanandroid_flutter/src/core/ui/app_scaffold.dart';
 import 'package:wanandroid_flutter/src/core/ui/app_top_bar.dart';
 
-/// 四套配色与三种模式的设置页；选择即时生效，保存失败回滚并提示，
-/// 从不显示虚假的保存成功。
+/// 外观与主题：配色卡片网格 + 分段式显示模式，按 Android 基线截图还原。
 class ThemeSettingsScreen extends ConsumerWidget {
   const ThemeSettingsScreen({required this.onBack, super.key});
 
@@ -57,102 +56,59 @@ class _ThemeBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
+    final List<WanPalette> palettes = ThemeSettingsScreen.paletteNames.keys
+        .toList(growable: false);
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: <Widget>[
-        if (readFailedBanner)
-          Material(
-            color: theme.colorScheme.errorContainer,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Text(
-                '无法读取已保存主题，当前使用默认设置',
-                style: theme.textTheme.bodySmall!.copyWith(
-                  color: theme.colorScheme.onErrorContainer,
-                ),
-              ),
-            ),
-          ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            '配色风格',
-            style: theme.textTheme.titleMedium!.copyWith(
-              color: theme.colorScheme.primary,
-            ),
-          ),
-        ),
-        RadioGroup<WanPalette>(
-          groupValue: controller.palette,
-          onChanged: (WanPalette? value) {
-            if (controller.saving || value == null) {
-              return;
-            }
-            unawaited(_apply(ref, context, value, controller.mode));
-          },
-          child: Column(
+        _sectionLabel(context, '配色风格'),
+        for (final List<WanPalette> pair in <List<WanPalette>>[
+          palettes.sublist(0, 2),
+          palettes.sublist(2, 4),
+        ])
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              for (final WanPalette palette
-                  in ThemeSettingsScreen.paletteNames.keys)
-                RadioListTile<WanPalette>(
-                  value: palette,
-                  title: Text(ThemeSettingsScreen.paletteNames[palette]!),
+              for (final WanPalette palette in pair)
+                Expanded(
+                  child: _PaletteCard(
+                    palette: palette,
+                    name: ThemeSettingsScreen.paletteNames[palette]!,
+                    selected: controller.palette == palette,
+                    enabled: !controller.saving,
+                    onSelected: () => unawaited(
+                      _apply(ref, context, palette, controller.mode),
+                    ),
+                  ),
                 ),
             ],
           ),
+        _sectionLabel(context, '显示模式'),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: _ModeSegmentedControl(controller: controller),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
-            '显示模式',
-            style: theme.textTheme.titleMedium!.copyWith(
-              color: theme.colorScheme.primary,
+            controller.saving ? '正在保存主题…' : '选择后即时生效',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ),
-        RadioGroup<ThemeMode>(
-          groupValue: controller.mode,
-          onChanged: (ThemeMode? value) {
-            if (controller.saving ||
-                value == null ||
-                value == ThemeMode.system) {
-              return;
-            }
-            unawaited(_apply(ref, context, controller.palette, value));
-          },
-          child: Column(
-            children: <Widget>[
-              for (final ThemeMode mode in ThemeSettingsScreen.modeNames.keys)
-                RadioListTile<ThemeMode>(
-                  value: mode,
-                  title: Text(ThemeSettingsScreen.modeNames[mode]!),
-                ),
-            ],
-          ),
-        ),
-        if (controller.saving)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              spacing: 8,
-              children: <Widget>[
-                SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                Text('正在保存主题…'),
-              ],
-            ),
-          )
-        else
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text('选择后即时生效', style: theme.textTheme.bodySmall),
-          ),
       ],
     );
   }
+
+  Widget _sectionLabel(BuildContext context, String text) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    child: Text(
+      text,
+      style: Theme.of(context).textTheme.titleMedium
+          ?.copyWith(fontWeight: FontWeight.w600),
+    ),
+  );
 
   Future<void> _apply(
     WidgetRef ref,
@@ -167,5 +123,141 @@ class _ThemeBody extends ConsumerWidget {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('主题保存失败，已恢复原设置')));
     }
+  }
+}
+
+class _PaletteCard extends StatelessWidget {
+  const _PaletteCard({
+    required this.palette,
+    required this.name,
+    required this.selected,
+    required this.enabled,
+    required this.onSelected,
+  });
+
+  final WanPalette palette;
+  final String name;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final PaletteSwatchColors swatches = paletteSwatchColors(palette);
+    final Color border = selected
+        ? swatches.dark
+        : theme.colorScheme.outlineVariant;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: enabled ? onSelected : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: border, width: selected ? 2 : 1),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(name, style: theme.textTheme.titleMedium),
+                  ),
+                  if (selected)
+                    CircleAvatar(
+                      radius: 12,
+                      backgroundColor: swatches.dark,
+                      child: const Icon(
+                        Icons.check,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                spacing: 12,
+                children: <Widget>[
+                  _dot(swatches.dark),
+                  _dot(swatches.mid),
+                  _dot(swatches.light),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _dot(Color color) => Container(
+    width: 32,
+    height: 32,
+    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+  );
+}
+
+class _ModeSegmentedControl extends StatelessWidget {
+  const _ModeSegmentedControl({required this.controller});
+
+  final ThemeController controller;
+
+  Future<void> _apply(BuildContext context, ThemeMode mode) async {
+    await controller.apply(controller.palette, mode);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final Color selection = paletteSelectionColor(controller.palette);
+    return Container(
+      height: 56,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: <Widget>[
+          for (final ThemeMode mode in ThemeSettingsScreen.modeNames.keys)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: controller.mode == mode
+                      ? null
+                      : () => unawaited(_apply(context, mode)),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: controller.mode == mode
+                          ? selection
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      ThemeSettingsScreen.modeNames[mode]!,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: controller.mode == mode
+                            ? theme.colorScheme.onPrimaryContainer
+                            : theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

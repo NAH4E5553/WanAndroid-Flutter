@@ -336,6 +336,35 @@ const Map<WanPalette, _PalettePair> _palettes = <WanPalette, _PalettePair>{
   ),
 };
 
+/// Three representative swatches for a palette, ordered dark -> mid -> light
+/// (primary, secondary, primaryContainer of the light scheme), used by the
+/// theme settings cards.
+class PaletteSwatchColors {
+  const PaletteSwatchColors({
+    required this.dark,
+    required this.mid,
+    required this.light,
+  });
+
+  final Color dark;
+  final Color mid;
+  final Color light;
+}
+
+PaletteSwatchColors paletteSwatchColors(WanPalette palette) {
+  final _Accent light = _palettes[palette]!.light;
+  return PaletteSwatchColors(
+    dark: light.primary,
+    mid: light.secondary,
+    light: light.primaryContainer,
+  );
+}
+
+/// The accent color the segmented display-mode control fills for the
+/// currently selected palette (light scheme container tone).
+Color paletteSelectionColor(WanPalette palette) =>
+    _palettes[palette]!.light.primaryContainer;
+
 ColorScheme _colorScheme(WanPalette palette, {required bool dark}) {
   final _PalettePair pair = _palettes[palette]!;
   final _Accent accent = dark ? pair.dark : pair.light;

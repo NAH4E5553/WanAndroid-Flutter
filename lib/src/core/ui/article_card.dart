@@ -7,12 +7,17 @@ class ArticleCard extends StatelessWidget {
     required this.article,
     required this.onTap,
     this.showCategory = true,
+    this.padding,
     super.key,
   });
 
   final Article article;
   final VoidCallback onTap;
   final bool showCategory;
+
+  /// Outer margins; callers embedded in swipe containers pass
+  /// [EdgeInsets.zero] to avoid double margins.
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
@@ -29,10 +34,12 @@ class ArticleCard extends StatelessWidget {
       button: true,
       label: '${article.title}，$byline，${article.publishedAt}',
       child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: spacing.page,
-          vertical: spacing.small,
-        ),
+        padding:
+            padding ??
+            EdgeInsets.symmetric(
+              horizontal: spacing.page,
+              vertical: spacing.small,
+            ),
         child: Card(
           clipBehavior: Clip.antiAlias,
           child: InkWell(

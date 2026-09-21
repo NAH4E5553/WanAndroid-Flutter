@@ -25,7 +25,12 @@ Widget buildReadingHistoryScreen({
 Widget buildCollectionsScreen({
   required VoidCallback onBack,
   required VoidCallback onLoginTap,
-}) => CollectionsScreen(onBack: onBack, onLoginTap: onLoginTap);
+  required void Function(String url, String title, int? articleId) onArticleTap,
+}) => CollectionsScreen(
+  onBack: onBack,
+  onLoginTap: onLoginTap,
+  onArticleTap: onArticleTap,
+);
 
 Widget buildThemeSettingsScreen({required VoidCallback onBack}) =>
     ThemeSettingsScreen(onBack: onBack);
