@@ -127,3 +127,17 @@ flutter test integration_test/stage4_ci_test.dart -d <ios-simulator-id>
 - 阅读器与历史测试只用固定 Fake 或本机受控页面；仅 Debug 构建允许测试专用 localhost 明文例外，生产 URL Policy 和 Release 禁止该通道。
 - 重试同 URL 旧实例隔离、主/子资源失败、网页返回优先、历史入库与去重/删除/重开必须分别验证；通用 iOS HTTP 回调身份不明时不得宣称已可靠识别主框架。
 - 生产 WebView/数据库的双端测试不替代真实进程终止、逐页视觉/无障碍、双端真机或阶段 6 发布门禁；阶段 5 登录/收藏/主题不得提前接入。
+
+## 阶段 5 验证入口
+
+在仓库根目录执行阶段 4 的完整入口，并追加：
+
+```bash
+dart --packages=tool/standalone_package_config.json tool/verify_stage5.dart
+flutter test integration_test/stage5_ci_test.dart -d <android-device-id>
+flutter test integration_test/stage5_ci_test.dart -d <ios-simulator-id>
+```
+
+- 自动化测试不接真实账号、不执行真实收藏写接口；真实账号验收单独记录。
+- 会话/收藏/主题各契约以单测覆盖（延迟写排队、恢复验证、articlePage 合并、reconcile 末页定论、setCollected 目标语义）；真实账号操作验收留阶段 6。
+- 主题设置 UI 交互（配色卡片、分段显示模式）有浅深模式 Widget 断言；逐页视觉对照留阶段 6。
