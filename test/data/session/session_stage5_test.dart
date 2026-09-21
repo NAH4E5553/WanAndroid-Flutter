@@ -10,6 +10,7 @@ import 'package:wanandroid_flutter/src/data/network/session/web_cookie.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/auth_repository.dart';
 import 'package:wanandroid_flutter/src/data/repository/implementation/default_auth_repository.dart';
 import 'package:wanandroid_flutter/src/data/storage/session_storage.dart';
+import 'package:wanandroid_flutter/src/model/user.dart';
 
 class _BlockingStorage implements SessionStorage {
   _BlockingStorage();
@@ -42,6 +43,79 @@ class _BlockingStorage implements SessionStorage {
 SessionStore _store(SessionStorage storage) => SessionStore(storage: storage);
 
 void main() {
+  test('parses dashed Netscape Expires dates emitted by wanandroid', () {
+    final cookie = WebCookie.parse(
+      'loginUserName=15711421917; '
+      'Expires=Wed, 21-Oct-2026 13:36:34 GMT; Path=/',
+      apiHost: 'wanandroid.com',
+    );
+    expect(cookie, isNotNull);
+    expect(cookie!.persistent, isTrue);
+    expect(cookie.expired, isFalse);
+    expect(
+      cookie.expiresAtMilliseconds,
+      DateTime.utc(2026, 10, 21, 13, 36, 34).millisecondsSinceEpoch,
+    );
+  });
+
+  test('session cookies without expiry stay alive in memory only', () {
+    final cookie = WebCookie.parse(
+      'JSESSIONID=ABC123; Path=/; Secure; HttpOnly',
+      apiHost: 'wanandroid.com',
+    );
+    expect(cookie, isNotNull);
+    expect(cookie!.persistent, isFalse);
+    expect(cookie.expired, isFalse);
+    expect(cookie.expiresAtMilliseconds, 4102444800000);
+  });
+
+  test(
+    'login commit keeps session cookies and persists only persistent ones',
+    () async {
+      final _MemoryStorage storage = _MemoryStorage();
+      final SessionStore store = _store(storage);
+      final SessionRequest request = await store.beginLogin();
+      store.observeResponseCookies(request, <WebCookie>[
+        WebCookie(
+          name: 'JSESSIONID',
+          value: 'session-value',
+          domain: 'wanandroid.com',
+          path: '/',
+          expiresAtMilliseconds: 4102444800000,
+          persistent: false,
+        ),
+        WebCookie(
+          name: 'loginUserName',
+          value: '15711421917',
+          domain: 'wanandroid.com',
+          path: '/',
+          expiresAtMilliseconds: DateTime.utc(
+            2026,
+            10,
+            21,
+          ).millisecondsSinceEpoch,
+          persistent: true,
+        ),
+      ]);
+      final bool committed = await store.commitLogin(
+        request,
+        const User(id: 7, username: 'user'),
+      );
+      expect(committed, isTrue);
+      expect(store.snapshot.authenticated, isTrue);
+      // Session cookies survive in memory for subsequent normal requests
+      // (the LOGIN-mode request itself carries none, by contract).
+      final SessionRequest normal = store.capture();
+      expect(
+        store.cookieHeader(normal, Uri.parse('https://wanandroid.com/')),
+        contains('JSESSIONID=session-value'),
+      );
+      // ...but the persisted payload only holds persistent cookies.
+      expect(storage.payload, isNot(contains('JSESSIONID')));
+      expect(storage.payload, contains('loginUserName'));
+    },
+  );
+
   test('delayed login write finishes before a queued logout runs', () async {
     final _BlockingStorage storage = _BlockingStorage();
     final SessionStore store = _store(storage);

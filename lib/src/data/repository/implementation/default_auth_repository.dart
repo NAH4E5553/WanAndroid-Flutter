@@ -8,6 +8,14 @@ import 'package:wanandroid_flutter/src/data/network/session/session_store.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/auth_repository.dart';
 import 'package:wanandroid_flutter/src/model/user.dart';
 
+/// Login diagnostics. Compliant with the logging rules: never logs
+/// passwords, cookie values or full request bodies — only envelope codes,
+/// messages and counts.
+void _logLogin(String message) {
+  // ignore: avoid_print
+  print('[auth] $message');
+}
+
 final class DefaultAuthRepository implements AuthRepository {
   DefaultAuthRepository({
     required SessionStore sessionStore,
@@ -79,61 +87,70 @@ final class DefaultAuthRepository implements AuthRepository {
   });
 
   @override
-  Future<DataResult<void>> login(String username, String password) =>
-      _coordinator.run(() async {
-        final String trimmed = username.trim();
-        if (trimmed.isEmpty ||
-            trimmed.length > 200 ||
-            password.isEmpty ||
-            password.length > 200) {
-          return const DataFailure<void>(DataError.invalidResponse);
-        }
-        SessionRequest? request;
-        try {
-          request = await _sessions.beginLogin();
-          final DataResult<UserEnvelope> result =
-              await requestWithData<UserEnvelope>(
-                request: () => _source.login(trimmed, password, request),
-                decode: (Object? data) {
-                  if (data is! Map) {
-                    throw const FormatException();
-                  }
-                  return parseUserEnvelope(data);
-                },
-                cancellation: const LiveRequestCancellation(),
-              );
-          if (result is! DataSuccess<UserEnvelope>) {
-            final DataError error = (result as DataFailure<UserEnvelope>).error;
-            _sessions.abortLogin(request);
-            return DataFailure<void>(error);
-          }
-          final UserEnvelope envelope = result.value;
-          final User user = User(
-            id: envelope.id,
-            username: envelope.username,
-            nickname: envelope.nickname,
+  Future<DataResult<void>> login(
+    String username,
+    String password,
+  ) => _coordinator.run(() async {
+    final String trimmed = username.trim();
+    if (trimmed.isEmpty ||
+        trimmed.length > 200 ||
+        password.isEmpty ||
+        password.length > 200) {
+      return const DataFailure<void>(DataError.invalidResponse);
+    }
+    SessionRequest? request;
+    try {
+      _logLogin(
+        'login begin (phone=${trimmed.length > 3 ? "***${trimmed.substring(trimmed.length - 4)}" : "***"})',
+      );
+      request = await _sessions.beginLogin();
+      final DataResult<UserEnvelope> result =
+          await requestWithData<UserEnvelope>(
+            request: () => _source.login(trimmed, password, request),
+            decode: (Object? data) {
+              if (data is! Map) {
+                throw const FormatException();
+              }
+              return parseUserEnvelope(data);
+            },
+            cancellation: const LiveRequestCancellation(),
           );
-          if (await _sessions.commitLogin(request, user)) {
-            return const DataSuccess<void>(null);
-          }
-          _sessions.abortLogin(request);
-          return const DataFailure<void>(DataError.sessionChanged);
-        } on SessionStorageException {
-          return const DataFailure<void>(DataError.storage);
-        } on SessionChangedException {
-          final SessionRequest? aborted = request;
-          if (aborted != null) {
-            _sessions.abortLogin(aborted);
-          }
-          return const DataFailure<void>(DataError.sessionChanged);
-        } on Object {
-          final SessionRequest? aborted = request;
-          if (aborted != null) {
-            _sessions.abortLogin(aborted);
-          }
-          return const DataFailure<void>(DataError.invalidResponse);
-        }
-      });
+      if (result is! DataSuccess<UserEnvelope>) {
+        final DataError error = (result as DataFailure<UserEnvelope>).error;
+        _sessions.abortLogin(request);
+        return DataFailure<void>(error);
+      }
+      final UserEnvelope envelope = result.value;
+      final User user = User(
+        id: envelope.id,
+        username: envelope.username,
+        nickname: envelope.nickname,
+      );
+      final bool committed = await _sessions.commitLogin(request, user);
+      // Counts only, never cookie values.
+      _logLogin('login commit=$committed');
+      if (committed) {
+        return const DataSuccess<void>(null);
+      }
+      _sessions.abortLogin(request);
+      return const DataFailure<void>(DataError.sessionChanged);
+    } on SessionStorageException {
+      _logLogin('login aborted: session storage failure');
+      return const DataFailure<void>(DataError.storage);
+    } on SessionChangedException {
+      final SessionRequest? aborted = request;
+      if (aborted != null) {
+        _sessions.abortLogin(aborted);
+      }
+      return const DataFailure<void>(DataError.sessionChanged);
+    } on Object {
+      final SessionRequest? aborted = request;
+      if (aborted != null) {
+        _sessions.abortLogin(aborted);
+      }
+      return const DataFailure<void>(DataError.invalidResponse);
+    }
+  });
 
   @override
   Future<LogoutOutcome> logout() => _coordinator.run(() async {
