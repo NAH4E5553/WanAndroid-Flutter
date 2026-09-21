@@ -17,6 +17,9 @@ final class DataFailure<T> extends DataResult<T> {
   const DataFailure(this.error);
 
   final DataError error;
+
+  @override
+  String toString() => 'DataFailure($error)';
 }
 
 enum DataError {

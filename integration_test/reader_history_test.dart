@@ -12,6 +12,7 @@ import 'package:wanandroid_flutter/src/app/app.dart';
 import 'package:wanandroid_flutter/src/app/router/app_shell.dart';
 import 'package:wanandroid_flutter/src/app/router/branch_restoration_controller.dart';
 import 'package:wanandroid_flutter/src/core/cancellation/request_cancellation.dart';
+import 'package:wanandroid_flutter/src/core/providers.dart';
 import 'package:wanandroid_flutter/src/core/reader/reading_history_provider.dart';
 import 'package:wanandroid_flutter/src/core/result/data_result.dart';
 import 'package:wanandroid_flutter/src/data/database/reading_history_database.dart';
@@ -26,6 +27,7 @@ import 'package:wanandroid_flutter/src/model/article.dart';
 import 'package:wanandroid_flutter/src/model/page_result.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../test/support/fake_session_repositories.dart';
 import '../test/support/fixed_topic_repository.dart';
 
 void main() {
@@ -260,6 +262,10 @@ void registerReaderHistoryTests() {
             articleRepositoryProvider.overrideWithValue(const _EmptyArticles()),
             topicRepositoryProvider.overrideWithValue(
               const FixedTopicRepository(),
+            ),
+            authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+            collectionRepositoryProvider.overrideWithValue(
+              FakeCollectionRepository(),
             ),
           ],
           child: const WanAndroidApp(),

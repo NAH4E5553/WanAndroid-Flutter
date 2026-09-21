@@ -41,3 +41,36 @@ Future<DataResult<T>> requestWithData<T>({
     return DataFailure<T>(DataError.invalidResponse);
   }
 }
+
+/// Maps write-style endpoints where the envelope itself carries the outcome;
+/// `data` may legitimately be null and is not required.
+Future<DataResult<void>> requestWithoutData({
+  required Future<Map<String, dynamic>> Function() request,
+  required RequestCancellation cancellation,
+}) async {
+  try {
+    cancellation.throwIfCancelled();
+    final Map<String, dynamic> response = await request();
+    cancellation.throwIfCancelled();
+    final Object? rawCode = response['errorCode'];
+    if (rawCode is! int) {
+      return const DataFailure<void>(DataError.invalidResponse);
+    }
+    if (rawCode == -1001) {
+      return const DataFailure<void>(DataError.sessionExpired);
+    }
+    if (rawCode != 0) {
+      return const DataFailure<void>(DataError.service);
+    }
+    cancellation.throwIfCancelled();
+    return const DataSuccess<void>(null);
+  } on RequestCancelledException {
+    rethrow;
+  } on NetworkRequestException {
+    return const DataFailure<void>(DataError.network);
+  } on NetworkResponseException {
+    return const DataFailure<void>(DataError.invalidResponse);
+  } catch (_) {
+    return const DataFailure<void>(DataError.invalidResponse);
+  }
+}

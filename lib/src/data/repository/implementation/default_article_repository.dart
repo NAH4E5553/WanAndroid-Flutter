@@ -6,16 +6,26 @@ import 'package:wanandroid_flutter/src/data/network/article_network_data_source.
 import 'package:wanandroid_flutter/src/data/network/dto/article_dto.dart';
 import 'package:wanandroid_flutter/src/data/network/dto/wan_page_dto.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/article_repository.dart';
+import 'package:wanandroid_flutter/src/data/repository/contract/collection_repository.dart';
 import 'package:wanandroid_flutter/src/model/article.dart';
 import 'package:wanandroid_flutter/src/model/page_result.dart';
 
 final class DefaultArticleRepository implements ArticleRepository {
-  const DefaultArticleRepository(this._source);
+  DefaultArticleRepository(this._source, [CollectionRepository? collections])
+    : _collections = collections;
 
   static const int firstQuestionPage = 1;
   static const int homeQuestionLimit = 5;
 
   final ArticleNetworkDataSource _source;
+  final CollectionRepository? _collections;
+
+  Future<DataResult<PageResult<Article>>> _merge(
+    Future<DataResult<PageResult<Article>>> Function() load,
+  ) {
+    final CollectionRepository? collections = _collections;
+    return collections == null ? load() : collections.articlePage(load);
+  }
 
   @override
   Future<DataResult<PageResult<Article>>> articles(
@@ -75,19 +85,21 @@ final class DefaultArticleRepository implements ArticleRepository {
     required int page,
     required RequestCancellation cancellation,
     required Future<Map<String, dynamic>> Function() request,
-  }) => requestWithData<PageResult<Article>>(
-    request: request,
-    cancellation: cancellation,
-    decode: (Object? data) {
-      final WanPageDto<ArticleDto> dto = WanPageDto<ArticleDto>.fromJson(
-        data,
-        ArticleDto.fromJson,
-      );
-      cancellation.throwIfCancelled();
-      return PageResult<Article>(
-        items: dto.datas.map(mapArticle).toList(growable: false),
-        nextPage: dto.over ? null : page + 1,
-      );
-    },
+  }) => _merge(
+    () => requestWithData<PageResult<Article>>(
+      request: request,
+      cancellation: cancellation,
+      decode: (Object? data) {
+        final WanPageDto<ArticleDto> dto = WanPageDto<ArticleDto>.fromJson(
+          data,
+          ArticleDto.fromJson,
+        );
+        cancellation.throwIfCancelled();
+        return PageResult<Article>(
+          items: dto.datas.map(mapArticle).toList(growable: false),
+          nextPage: dto.over ? null : page + 1,
+        );
+      },
+    ),
   );
 }

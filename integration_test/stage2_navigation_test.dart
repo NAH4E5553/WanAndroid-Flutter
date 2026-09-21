@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:wanandroid_flutter/src/app/app.dart';
 import 'package:wanandroid_flutter/src/core/cancellation/request_cancellation.dart';
+import 'package:wanandroid_flutter/src/core/providers.dart';
 import 'package:wanandroid_flutter/src/core/result/data_result.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/article_repository.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/search_suggestions_repository.dart';
@@ -13,6 +14,7 @@ import 'package:wanandroid_flutter/src/model/article.dart';
 import 'package:wanandroid_flutter/src/model/page_result.dart';
 import 'package:wanandroid_flutter/src/model/search_history.dart';
 
+import '../test/support/fake_session_repositories.dart';
 import '../test/support/fixed_topic_repository.dart';
 
 void main() {
@@ -27,6 +29,10 @@ void registerStage2NavigationTests() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+          collectionRepositoryProvider.overrideWithValue(
+            FakeCollectionRepository(),
+          ),
           articleRepositoryProvider.overrideWithValue(_Articles()),
           topicRepositoryProvider.overrideWithValue(
             const FixedTopicRepository(),

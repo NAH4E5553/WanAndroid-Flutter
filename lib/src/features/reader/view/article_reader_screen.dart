@@ -8,6 +8,7 @@ import 'package:wanandroid_flutter/src/core/reader/reader_url_policy.dart';
 import 'package:wanandroid_flutter/src/core/reader/reading_history_provider.dart';
 import 'package:wanandroid_flutter/src/core/ui/app_scaffold.dart';
 import 'package:wanandroid_flutter/src/core/ui/app_top_bar.dart';
+import 'package:wanandroid_flutter/src/features/reader/navigation/reader_navigation.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class ArticleReaderScreen extends ConsumerStatefulWidget {
@@ -20,6 +21,9 @@ class ArticleReaderScreen extends ConsumerStatefulWidget {
     this.allowLoopbackFixture = false,
     this.loadTimeout = const Duration(seconds: 30),
     this.onControllerReady,
+    this.collectState,
+    this.onToggleCollect,
+    this.onLogin,
     super.key,
   });
 
@@ -31,6 +35,12 @@ class ArticleReaderScreen extends ConsumerStatefulWidget {
   final bool allowLoopbackFixture;
   final Duration loadTimeout;
   final ValueChanged<WebViewController>? onControllerReady;
+
+  /// Session/collection wiring injected from the app layer; null in isolated
+  /// fixtures keeps the stage-4 placeholder behaviour.
+  final CollectMenuState? Function()? collectState;
+  final void Function(CollectionCollectIntent intent)? onToggleCollect;
+  final VoidCallback? onLogin;
 
   @override
   ConsumerState<ArticleReaderScreen> createState() =>
@@ -299,6 +309,24 @@ class _ArticleReaderScreenState extends ConsumerState<ArticleReaderScreen> {
     }
   }
 
+  Future<void> _toggleCollect() async {
+    final CollectMenuState? state = widget.collectState?.call();
+    if (state == null || !state.authenticated || state.busy) {
+      return;
+    }
+    final int? generation = state.generation;
+    if (generation == null) {
+      return;
+    }
+    widget.onToggleCollect?.call(
+      CollectionCollectIntent(
+        articleId: widget.articleId,
+        collected: state.collected,
+        generation: generation,
+      ),
+    );
+  }
+
   Future<void> _confirmExternal(Uri uri) async {
     final bool? confirmed = await showDialog<bool>(
       context: context,
@@ -357,16 +385,38 @@ class _ArticleReaderScreenState extends ConsumerState<ArticleReaderScreen> {
               } else if (action == 'external' && _activeUrl != null) {
                 await _confirmExternal(_activeUrl!);
               } else if (action == 'collect' && mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('登录与收藏将在阶段 5 开放')));
+                final CollectMenuState? state = widget.collectState?.call();
+                if (state == null || !state.authenticated) {
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(const SnackBar(content: Text('登录后才能收藏')));
+                  widget.onLogin?.call();
+                } else if (!state.busy) {
+                  unawaited(_toggleCollect());
+                }
               }
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'refresh', child: Text('刷新')),
-              PopupMenuItem(value: 'external', child: Text('浏览器打开')),
-              PopupMenuItem(value: 'collect', child: Text('收藏')),
-            ],
+            itemBuilder: (_) {
+              final CollectMenuState? state = widget.collectState?.call();
+              final bool collectable = state != null && state.authenticated;
+              final String collectLabel = state?.collected ?? false
+                  ? '取消收藏'
+                  : '收藏';
+              return <PopupMenuItem<String>>[
+                const PopupMenuItem<String>(
+                  value: 'refresh',
+                  child: Text('刷新'),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'external',
+                  child: Text('浏览器打开'),
+                ),
+                PopupMenuItem<String>(
+                  value: 'collect',
+                  enabled: !collectable || !(state.busy),
+                  child: Text(collectLabel),
+                ),
+              ];
+            },
           ),
         ],
       ),

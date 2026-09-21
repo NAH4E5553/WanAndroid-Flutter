@@ -67,3 +67,21 @@ final class RequestCancelledException implements Exception {
   @override
   String toString() => 'RequestCancelledException';
 }
+
+/// Cancellation signal for session-bound calls that no caller cancels; the
+/// detached logout stays best-effort and uncancelled by design.
+final class LiveRequestCancellation implements RequestCancellation {
+  const LiveRequestCancellation();
+
+  @override
+  bool get isCancelled => false;
+
+  @override
+  Future<void> get whenCancelled async {}
+
+  @override
+  void throwIfCancelled() {}
+
+  @override
+  void Function() addCancelListener(void Function() listener) => () {};
+}

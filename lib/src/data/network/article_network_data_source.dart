@@ -1,5 +1,6 @@
 import 'package:wanandroid_flutter/src/core/cancellation/request_cancellation.dart';
 import 'package:wanandroid_flutter/src/data/network/service/wan_api_service.dart';
+import 'package:wanandroid_flutter/src/data/network/session/session_store.dart';
 
 abstract interface class ArticleNetworkDataSource {
   Future<Map<String, dynamic>> articles(
@@ -29,30 +30,36 @@ abstract interface class ArticleNetworkDataSource {
   );
 }
 
+/// Tags every public read with the captured session so the interceptor can
+/// attach cookies when a session is active; guests stay cookie-free.
 final class DefaultArticleNetworkDataSource
     implements ArticleNetworkDataSource {
-  const DefaultArticleNetworkDataSource(this._service);
+  DefaultArticleNetworkDataSource(this._service, [SessionStore? sessions])
+    : _sessions = sessions;
 
   final WanApiService _service;
+  final SessionStore? _sessions;
+
+  Object? _sessionTag() => _sessions?.capture();
 
   @override
   Future<Map<String, dynamic>> articles(
     int page,
     RequestCancellation cancellation,
-  ) => _service.articles(page, cancellation);
+  ) => _service.articles(page, cancellation, session: _sessionTag());
 
   @override
   Future<Map<String, dynamic>> questions(
     int page,
     RequestCancellation cancellation,
-  ) => _service.questions(page, cancellation);
+  ) => _service.questions(page, cancellation, session: _sessionTag());
 
   @override
   Future<Map<String, dynamic>> search(
     int page,
     String keyword,
     RequestCancellation cancellation,
-  ) => _service.search(page, keyword, cancellation);
+  ) => _service.search(page, keyword, cancellation, session: _sessionTag());
 
   @override
   Future<Map<String, dynamic>> hotKeys(RequestCancellation cancellation) =>
@@ -67,5 +74,10 @@ final class DefaultArticleNetworkDataSource
     int categoryId,
     int page,
     RequestCancellation cancellation,
-  ) => _service.topicArticles(categoryId, page, cancellation);
+  ) => _service.topicArticles(
+    categoryId,
+    page,
+    cancellation,
+    session: _sessionTag(),
+  );
 }

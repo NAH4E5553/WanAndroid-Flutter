@@ -1,9 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanandroid_flutter/src/app/router/app_router.dart';
 import 'package:wanandroid_flutter/src/app/router/branch_restoration_controller.dart';
 import 'package:wanandroid_flutter/src/core/navigation/branch_stack_snapshot.dart';
+import 'package:wanandroid_flutter/src/core/providers.dart';
+import 'package:wanandroid_flutter/src/core/theme/theme_controller.dart';
 import 'package:wanandroid_flutter/src/core/theme/wan_theme.dart';
 
 class WanAndroidApp extends StatelessWidget {
@@ -16,15 +19,16 @@ class WanAndroidApp extends StatelessWidget {
   );
 }
 
-class _RestorableWanAndroidApp extends StatefulWidget {
+class _RestorableWanAndroidApp extends ConsumerStatefulWidget {
   const _RestorableWanAndroidApp();
 
   @override
-  State<_RestorableWanAndroidApp> createState() =>
+  ConsumerState<_RestorableWanAndroidApp> createState() =>
       _RestorableWanAndroidAppState();
 }
 
-class _RestorableWanAndroidAppState extends State<_RestorableWanAndroidApp>
+class _RestorableWanAndroidAppState
+    extends ConsumerState<_RestorableWanAndroidApp>
     with RestorationMixin {
   late final AppRouter _appRouter;
   late final BranchRestorationController _branchController;
@@ -60,18 +64,27 @@ class _RestorableWanAndroidAppState extends State<_RestorableWanAndroidApp>
   }
 
   @override
-  Widget build(BuildContext context) => BranchRestorationScope(
-    controller: _branchController,
-    child: MaterialApp.router(
-      title: 'WanAndroid Flutter',
-      debugShowCheckedModeBanner: false,
-      restorationScopeId: 'wanandroid-app',
-      themeMode: ThemeMode.system,
-      theme: wanTheme(brightness: Brightness.light),
-      darkTheme: wanTheme(brightness: Brightness.dark),
-      routerConfig: _appRouter.router,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final ThemeController theme = ref.watch(themeControllerProvider);
+    return BranchRestorationScope(
+      controller: _branchController,
+      child: AnimatedBuilder(
+        animation: theme,
+        builder: (BuildContext context, Widget? child) => MaterialApp.router(
+          title: 'WanAndroid Flutter',
+          debugShowCheckedModeBanner: false,
+          restorationScopeId: 'wanandroid-app',
+          themeMode: theme.mode,
+          theme: wanTheme(palette: theme.palette, brightness: Brightness.light),
+          darkTheme: wanTheme(
+            palette: theme.palette,
+            brightness: Brightness.dark,
+          ),
+          routerConfig: _appRouter.router,
+        ),
+      ),
+    );
+  }
 
   @override
   void dispose() {

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanandroid_flutter/src/core/reader/reading_history_provider.dart';
 import 'package:wanandroid_flutter/src/core/ui/app_scaffold.dart';
 import 'package:wanandroid_flutter/src/core/ui/app_top_bar.dart';
+import 'package:wanandroid_flutter/src/core/ui/swipe_reveal_action_item.dart';
 import 'package:wanandroid_flutter/src/model/reading_history_entry.dart';
 
 class ReadingHistoryScreen extends ConsumerStatefulWidget {
@@ -223,73 +224,26 @@ class _HistoryRow extends StatefulWidget {
 }
 
 class _HistoryRowState extends State<_HistoryRow> {
-  double _dragDistance = 0;
-
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-    child: LayoutBuilder(
-      builder: (context, constraints) => ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Stack(
-          children: [
-            Positioned(
-              top: 0,
-              right: 0,
-              bottom: 0,
-              width: 72,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: ColoredBox(
-                  color: Theme.of(context).colorScheme.error,
-                  child: IconButton(
-                    tooltip: '删除历史',
-                    onPressed: widget.onDelete,
-                    icon: Icon(
-                      Icons.delete_outline,
-                      color: Theme.of(context).colorScheme.onError,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            AnimatedSlide(
-              offset: Offset(
-                widget.revealed ? -72 / constraints.maxWidth : 0,
-                0,
-              ),
-              duration: const Duration(milliseconds: 200),
-              child: GestureDetector(
-                onHorizontalDragStart: (_) => _dragDistance = 0,
-                onHorizontalDragUpdate: (details) =>
-                    _dragDistance += details.primaryDelta ?? 0,
-                onHorizontalDragEnd: (details) {
-                  if (_dragDistance < -30 ||
-                      (details.primaryVelocity ?? 0) < -100) {
-                    widget.onReveal();
-                  } else if (_dragDistance > 30 ||
-                      (details.primaryVelocity ?? 0) > 100) {
-                    widget.onClose();
-                  }
-                },
-                child: Material(
-                  color: Theme.of(context).colorScheme.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(12),
-                  clipBehavior: Clip.antiAlias,
-                  child: ListTile(
-                    title: Text(
-                      widget.entry.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: const Text('仅保存在本机'),
-                    onTap: widget.revealed ? widget.onClose : widget.onRead,
-                  ),
-                ),
-              ),
-            ),
-          ],
+  Widget build(BuildContext context) => SwipeRevealActionItem(
+    revealed: widget.revealed,
+    onReveal: widget.onReveal,
+    onClose: widget.onClose,
+    actionTooltip: '删除历史',
+    onAction: widget.onDelete,
+    actionIcon: Icons.delete_outline,
+    child: Material(
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        title: Text(
+          widget.entry.title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
+        subtitle: const Text('仅保存在本机'),
+        onTap: widget.revealed ? widget.onClose : widget.onRead,
       ),
     ),
   );
