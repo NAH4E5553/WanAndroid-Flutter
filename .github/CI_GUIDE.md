@@ -49,11 +49,12 @@ OCR 准备脚本只下载 Alibaba OpenCodeReview 固定提交的两个公开文�
 
 ## GitHub Ruleset 建议
 
-远端配置完成前不得宣称独立审查已强制执行。目标规则为：
+仓库保存可审计的目标配置 `.github/ruleset-main.json`。远端配置完成并经 API 回读前不得宣称已强制执行。目标规则为：
 
 - `main` 必须通过 PR，禁止直接推送、强推和删除；管理员不绕过。
 - 必需检查使用实际 job 名称：`Classify PR changes`、`Analyze and Test`（含架构/隐私、Analyze、Unit/Widget）、`Android Integration`、`Android APK`、`iOS Integration`、`iOS Simulator`、`Documentation Consistency`。分类任务必需，防止分类失败时依赖任务全部跳过仍可合并。
 - PR 必须同步最新 `main`，所有审查讨论解决后才能合并。
+- 当前未启用独立人工批准要求（批准数为 0），以免单人维护仓库被自审限制永久卡住；Ruleset 只保证确定性检查与 PR 流程。若要真正独立的语义审查，需要另行授权审查人或模型服务并设置相应门禁。
 - OCR 当前默认关闭，不能设为 Required 或宣称独立语义审查已运行。只有取得单独的外发/费用授权并完成3～5个真实PR的命中、误报、漏报、耗时和费用记录后，才考虑将高等级发现升级为阻断。
 
 ## 有效性验证

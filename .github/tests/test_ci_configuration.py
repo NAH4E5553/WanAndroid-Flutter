@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import re
 import subprocess
 import unittest
@@ -44,6 +45,9 @@ class CiConfigurationTest(unittest.TestCase):
                 encoding="utf-8"
             ),
             Loader=UniqueKeyLoader,
+        )
+        cls.ruleset = json.loads(
+            (ROOT / ".github/ruleset-main.json").read_text(encoding="utf-8")
         )
 
     def test_ocr_uses_pull_request_without_target_execution(self):
@@ -123,6 +127,31 @@ class CiConfigurationTest(unittest.TestCase):
         self.assertEqual(
             "Documentation Consistency",
             self.documentation["jobs"]["documentation"]["name"],
+        )
+
+    def test_ruleset_requires_exact_ci_jobs_from_github_actions(self):
+        rules = {rule["type"]: rule for rule in self.ruleset["rules"]}
+        self.assertEqual("active", self.ruleset["enforcement"])
+        self.assertEqual([], self.ruleset["bypass_actors"])
+        self.assertEqual(
+            ["refs/heads/main"],
+            self.ruleset["conditions"]["ref_name"]["include"],
+        )
+        self.assertIn("pull_request", rules)
+        self.assertIn("deletion", rules)
+        self.assertIn("non_fast_forward", rules)
+        self.assertEqual(
+            0, rules["pull_request"]["parameters"]["required_approving_review_count"]
+        )
+        checks = rules["required_status_checks"]["parameters"]
+        self.assertTrue(checks["strict_required_status_checks_policy"])
+        actual = {check["context"] for check in checks["required_status_checks"]}
+        expected = {job["name"] for job in self.stage["jobs"].values()}
+        expected.add(self.documentation["jobs"]["documentation"]["name"])
+        self.assertEqual(expected, actual)
+        self.assertEqual(
+            {15368},
+            {check["integration_id"] for check in checks["required_status_checks"]},
         )
 
     def test_all_workflow_yaml_and_bash_steps_parse(self):
