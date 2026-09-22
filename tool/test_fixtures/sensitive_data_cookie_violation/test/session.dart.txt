@@ -1,0 +1,1 @@
+const String cookie = 'loginUserName=16600000000; Path=/';

@@ -36,12 +36,13 @@ void main() {
       return;
     }
     final SessionStore store = SessionStore(storage: _MemoryStorage());
+    final SessionCommitCoordinator coordinator = SessionCommitCoordinator();
     final Dio dio = createWanApiDio()
-      ..interceptors.add(SessionInterceptor(store));
+      ..interceptors.add(SessionInterceptor(store, coordinator));
     final DefaultAuthRepository auth = DefaultAuthRepository(
       sessionStore: store,
       source: DefaultAuthNetworkDataSource(DioWanApiService(dio: dio)),
-      coordinator: SessionCommitCoordinator(),
+      coordinator: coordinator,
     );
     final DefaultCollectionRepository collections = DefaultCollectionRepository(
       source: DefaultCollectionNetworkDataSource(DioWanApiService(dio: dio)),
@@ -49,13 +50,6 @@ void main() {
     );
 
     final DataResult<void> result = await auth.login(user, pass);
-    // ignore: avoid_print
-    print('[real-login] result=$result');
-    // ignore: avoid_print
-    print(
-      '[real-login] phase=${store.snapshot.phase} '
-      'user=${store.snapshot.user?.displayName}',
-    );
     expect(result, isA<DataSuccess<void>>());
     expect(store.snapshot.authenticated, isTrue);
 
@@ -65,11 +59,7 @@ void main() {
       generation,
       0,
     );
-    final int collectionCount = page is DataSuccess<PageResult<CollectionItem>>
-        ? page.value.items.length
-        : -1;
-    // ignore: avoid_print
-    print('[real-login] collections=$collectionCount');
+    expect(page, isA<DataSuccess<PageResult<CollectionItem>>>());
   });
 }
 

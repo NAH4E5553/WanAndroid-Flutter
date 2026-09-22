@@ -4,7 +4,7 @@
 > 架构依据：`Flutter版本实施方案.md`。  
 > Android 行为基线：`/Users/sn/Desktop/workplace/WanAndroid-AI`，提交 `78cdaade84ef24ebbe825041b499cbe1cd7ee286`。  
 > 当前状态：以 `docs/阶段状态与决策记录.md` 为唯一权威入口。  
-> 最后更新：2026-09-19（阶段3交付经PR #6远端验证并合并；阶段4已获授权并开始实施）。
+> 最后更新：2026-09-22（阶段5主体已合并；登录/会话审查修正及可执行质量门禁正在本地验证，当前状态以状态记录为准）。
 
 阶段0工作入口：[行为对照矩阵](docs/阶段0行为对照矩阵.md)、[关键原型报告](docs/阶段0关键原型报告.md)、[依赖清单](docs/阶段0依赖锁定清单.md)。用户已于2026-09-18完整接受报告15.3推荐值，阶段0已冻结；冻结的是后续实施基线，不代表生产网络、WebView、登录、收藏、视觉验收、真实进程恢复或发布检查已经实现。UI工作另须读取[UI基线与还原规范](/Users/sn/Desktop/workplace/WanAndroid-AI/docs/local/Flutter-UI基线与还原规范.md)，其UI编号统一纳入上述矩阵。 2026-09-21 用户授权进入阶段5，登录/收藏/主题/我的已实现并通过本地全量门禁与双端模拟器集成（详见状态记录2.5）；真实账号验收留待阶段6。
 
@@ -446,6 +446,9 @@ AI 不得为了让某阶段“看起来完成”而提前实现下一阶段业�
 ```bash
 dart format --output=none --set-exit-if-changed .
 dart run tool/verify_architecture.dart
+dart run tool/verify_architecture_fixtures.dart
+dart run tool/verify_sensitive_data.dart
+dart run tool/verify_sensitive_data_fixtures.dart
 flutter analyze
 flutter test --coverage
 flutter build apk --debug
@@ -461,6 +464,10 @@ flutter test integration_test -d <ios-simulator-id>
 - 构建成功不能替代设备流程验证。
 - Simulator 不能替代 iOS 真机/发布检查。
 - 环境阻塞、未执行和失败必须与通过项分开报告。
+
+架构与隐私门禁必须同时验证门禁本体和正反夹具，不能只证明当前代码恰好通过。Feature View 不得直接读取组合根 Provider 或依赖 Data 层；ViewModel 可以依赖 Repository 契约。既有债务只能使用文件与目标都精确匹配的临时清单，并记录删除条件，不能用目录级或规则级豁免。
+
+独立 AI 审查属于补充证据，不替代上述确定性门禁。其 Workflow 必须从 PR base commit 读取审查器和规则，锁定依赖源码身份与哈希，使用最小权限，不持久化原始模型输出，并默认关闭。只有用户明确同意代码发送给外部模型、成本与凭据边界，完成一次无敏感内容的 canary，并在仓库 Ruleset 中把稳定检查设为 Required 后，才可称为独立必过门禁。首次引入审查 Workflow 的 PR 无法审查自身变更，必须从后续 PR 开始提供独立证据。
 
 ### 15.4 交付
 

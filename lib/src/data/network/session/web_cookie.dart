@@ -116,12 +116,13 @@ class WebCookie {
     }
     if (maxAge != null) {
       if (maxAge <= 0) {
-        return null;
+        expiresAt = 0;
+      } else {
+        expiresAt = DateTime.now()
+            .toUtc()
+            .add(Duration(seconds: maxAge))
+            .millisecondsSinceEpoch;
       }
-      expiresAt = DateTime.now()
-          .toUtc()
-          .add(Duration(seconds: maxAge))
-          .millisecondsSinceEpoch;
     }
     // Session cookies (no Expires/Max-Age) never expire while the process
     // lives — model them with a far-future stamp so they are not treated as

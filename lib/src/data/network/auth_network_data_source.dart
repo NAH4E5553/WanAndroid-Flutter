@@ -1,3 +1,4 @@
+import 'package:wanandroid_flutter/src/core/cancellation/request_cancellation.dart';
 import 'package:wanandroid_flutter/src/data/network/service/wan_api_service.dart';
 
 /// Raw session-bound endpoint access; callers own session tagging and Wan
@@ -7,6 +8,7 @@ abstract interface class AuthNetworkDataSource {
     String username,
     String password,
     Object? session,
+    RequestCancellation cancellation,
   );
 
   Future<Map<String, dynamic>> userInfo(Object? session);
@@ -24,7 +26,8 @@ final class DefaultAuthNetworkDataSource implements AuthNetworkDataSource {
     String username,
     String password,
     Object? session,
-  ) => _service.login(username, password, session);
+    RequestCancellation cancellation,
+  ) => _service.login(username, password, session, cancellation);
 
   @override
   Future<Map<String, dynamic>> userInfo(Object? session) =>

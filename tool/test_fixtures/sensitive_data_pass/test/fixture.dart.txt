@@ -1,0 +1,2 @@
+const String phone = '13800138000';
+const String user = 'fixture-user';

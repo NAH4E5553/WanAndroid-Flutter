@@ -1,0 +1,34 @@
+{
+  "rules": [
+    {
+      "path": "**/*.dart",
+      "rule": "只报告有本次Diff、调用方、契约或测试证据的实际缺陷，不报告风格偏好、推测或无行为收益的重构。遵守AGENTS.md及冻结矩阵：View只渲染状态并派发事件，不直接读取Repository、DataSource、Dio、Storage或组合根Provider；ViewModel只依赖Repository接口和项目取消契约；Repository实现负责业务一致性，网络层独占Dio类型。重点检查请求取消是否贯穿且迟到结果被代次拒绝；SessionRequest、Set-Cookie、401和-1001是否校验当前generation；登录、Cookie刷新、退出和恢复是否经过同一个SessionCommitCoordinator；失败或取消是否污染当前Cookie；A旧响应不得修改B。检查收藏writeVersion、collectionSession、articleId/recordId目标和不确定写入核对。WebView旧实例回调、主/子资源错误、网页返回优先及历史写入条件不得退化。测试必须经过被测生产边界，不能由Fake直接代替Interceptor或Coordinator。禁止真实手机号、用户名、密码、Cookie、响应正文、收藏数量或其他账号数据进入源码、测试、日志和文档。状态文档不得把Widget、Fake、Simulator或构建结果扩大为真机、真实账号、视觉、进程恢复或发布验收。",
+      "merge_system_rule": true
+    },
+    {
+      "path": ".github/**",
+      "rule": "检查必需门禁与AGENTS.md当前阶段一致；分类失败不得静默放行，工作流不得输出Secret或原始模型响应。OCR适配器和规则必须从PR基线加载，不能执行PR head的适配脚本；禁止使用pull_request_target执行PR代码并暴露凭据。OCR不能替代确定性CI、设备验证或人工判断。",
+      "merge_system_rule": true
+    },
+    {
+      "path": ".opencodereview/**",
+      "rule": "规则变更不得静默删除架构、会话竞争、取消、隐私、收藏一致性、WebView和证据边界检查；只报告可证明问题，不自行改变冻结契约或扩大业务范围。",
+      "merge_system_rule": true
+    },
+    {
+      "path": "pubspec.yaml",
+      "rule": "依赖变化必须符合冻结版本、现有调用方和双端最低版本；禁止浮动依赖、无调用方抽象、未说明的dependency_override或绕过本地WebView补丁。",
+      "merge_system_rule": true
+    },
+    {
+      "path": "ios/**",
+      "rule": "检查iOS 15最低版本、Keychain不同步、ATS、隐私和签名边界；Simulator结果不得冒充真机或发布验收。",
+      "merge_system_rule": true
+    },
+    {
+      "path": "android/**",
+      "rule": "检查API 24最低版本、敏感存储备份、明文网络、权限和WebView本地补丁边界；不得加入签名、凭据、local.properties或真实账号数据。",
+      "merge_system_rule": true
+    }
+  ]
+}

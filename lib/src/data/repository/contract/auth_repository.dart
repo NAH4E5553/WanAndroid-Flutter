@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:wanandroid_flutter/src/core/cancellation/request_cancellation.dart';
 import 'package:wanandroid_flutter/src/core/result/data_result.dart';
 
 enum LogoutRemoteResult { confirmed, unconfirmed }
@@ -42,7 +43,11 @@ abstract interface class AuthRepository extends Listenable {
   /// keeps public browsing alive.
   Future<DataResult<void>> restore();
 
-  Future<DataResult<void>> login(String username, String password);
+  Future<DataResult<void>> login(
+    String username,
+    String password, {
+    RequestCancellation cancellation = const LiveRequestCancellation(),
+  });
 
   Future<LogoutOutcome> logout();
 }

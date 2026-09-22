@@ -34,6 +34,39 @@ void main() {
     );
     expect(report.violations, isEmpty);
   });
+
+  test('view cannot import a repository contract', () async {
+    final ArchitectureReport report = await _verifyFixture(
+      'view_repository_contract_violation',
+    );
+    expect(
+      report.violations.any(
+        (ArchitectureViolation item) =>
+            item.rule == 'FEATURE_PRESENTATION_DATA',
+      ),
+      isTrue,
+    );
+  });
+
+  test('view cannot import the composition-root provider barrel', () async {
+    final ArchitectureReport report = await _verifyFixture(
+      'view_provider_composition_violation',
+    );
+    expect(
+      report.violations.any(
+        (ArchitectureViolation item) =>
+            item.rule == 'VIEW_PROVIDER_COMPOSITION',
+      ),
+      isTrue,
+    );
+  });
+
+  test('view model may depend on a repository contract', () async {
+    final ArchitectureReport report = await _verifyFixture(
+      'view_model_repository_contract_pass',
+    );
+    expect(report.violations, isEmpty);
+  });
 }
 
 Future<ArchitectureReport> _verifyFixture(String name) async {

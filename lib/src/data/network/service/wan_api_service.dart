@@ -40,6 +40,7 @@ abstract interface class WanSessionApiService {
     String username,
     String password,
     Object? session,
+    RequestCancellation cancellation,
   );
 
   Future<Map<String, dynamic>> userInfo(Object? session);
@@ -133,6 +134,7 @@ final class DioWanApiService implements WanApiService, WanSessionApiService {
     String username,
     String password,
     Object? session,
+    RequestCancellation cancellation,
   ) => _request(
     (CancelToken token) => _dio.post<Object?>(
       'user/login',
@@ -143,7 +145,7 @@ final class DioWanApiService implements WanApiService, WanSessionApiService {
       ),
       cancelToken: token,
     ),
-    const LiveRequestCancellation(),
+    cancellation,
   );
 
   @override

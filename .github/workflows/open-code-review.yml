@@ -1,0 +1,96 @@
+name: OpenCodeReview
+
+"on":
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - '**/*.dart'
+      - '**/*.java'
+      - '**/*.kt'
+      - '**/*.kts'
+      - '**/*.swift'
+      - '**/*.xml'
+      - '**/*.plist'
+      - '**/*.json'
+      - '**/*.yaml'
+      - '**/*.yml'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - 'AGENTS.md'
+      - '**/AGENTS.md'
+      - '.github/**'
+      - '!.github/**/*.md'
+      - '.opencodereview/**'
+      - 'tool/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: open-code-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: OpenCodeReview
+    if: >-
+      vars.OCR_ENABLED == 'true' &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Validate model configuration without printing values
+        env:
+          MODEL_URL: ${{ secrets.OCR_LLM_URL }}
+          MODEL_TOKEN: ${{ secrets.OCR_LLM_AUTH_TOKEN }}
+          MODEL_NAME: ${{ vars.OCR_LLM_MODEL }}
+          MODEL_PROTOCOL: ${{ vars.OCR_LLM_USE_ANTHROPIC }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$MODEL_URL" || -z "$MODEL_TOKEN" || -z "$MODEL_NAME" ]]; then
+            echo "::error::OCR model configuration is incomplete; keep OCR_ENABLED=false until configured"
+            exit 1
+          fi
+          if [[ "$MODEL_URL" != https://* ]]; then
+            echo "::error::OCR requires an HTTPS model endpoint"
+            exit 1
+          fi
+          if [[ "$MODEL_PROTOCOL" != "true" && "$MODEL_PROTOCOL" != "false" ]]; then
+            echo "::error::OCR_LLM_USE_ANTHROPIC must be explicitly true or false"
+            exit 1
+          fi
+      - name: Checkout trusted base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prepare hash-verified log-safe OCR action
+        run: python .github/scripts/prepare_ocr_action.py
+      - name: Review pull request
+        uses: ./build/ci-tools/ocr-action
+        with:
+          llm_url: ${{ secrets.OCR_LLM_URL }}
+          llm_auth_token: ${{ secrets.OCR_LLM_AUTH_TOKEN }}
+          llm_model: ${{ vars.OCR_LLM_MODEL }}
+          llm_use_anthropic: ${{ vars.OCR_LLM_USE_ANTHROPIC }}
+          ocr_version: '1.11.1'
+          language: Chinese
+          rule: .opencodereview/rule.json
+          review_concurrency: '2'
+          upload_artifacts: 'false'
+          sticky_summary: 'true'
+          incremental: 'true'
+          checkpoint_range: 'true'
+          route_severity_below: low
+          route_categories: style,documentation

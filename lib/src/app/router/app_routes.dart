@@ -25,8 +25,10 @@ class LoginRouteData extends GoRouteData with $LoginRouteData {
   const LoginRouteData();
 
   @override
-  Widget build(BuildContext context, GoRouterState state) =>
-      buildLoginScreen(onBack: () => context.pop());
+  Widget build(BuildContext context, GoRouterState state) => buildLoginScreen(
+    onBack: () => context.pop(),
+    onLoggedIn: () => context.pop(),
+  );
 }
 
 @TypedStatefulShellRoute<MainShellRouteData>(

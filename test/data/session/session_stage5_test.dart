@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wanandroid_flutter/src/core/cancellation/request_cancellation.dart';
 import 'package:wanandroid_flutter/src/core/result/data_result.dart';
 import 'package:wanandroid_flutter/src/data/network/auth_network_data_source.dart';
 import 'package:wanandroid_flutter/src/data/network/session/session_commit_coordinator.dart';
@@ -45,7 +46,7 @@ SessionStore _store(SessionStorage storage) => SessionStore(storage: storage);
 void main() {
   test('parses dashed Netscape Expires dates emitted by wanandroid', () {
     final cookie = WebCookie.parse(
-      'loginUserName=15711421917; '
+      'loginUserName=fixture-user; '
       'Expires=Wed, 21-Oct-2026 13:36:34 GMT; Path=/',
       apiHost: 'wanandroid.com',
     );
@@ -86,7 +87,7 @@ void main() {
         ),
         WebCookie(
           name: 'loginUserName',
-          value: '15711421917',
+          value: 'fixture-user',
           domain: 'wanandroid.com',
           path: '/',
           expiresAtMilliseconds: DateTime.utc(
@@ -217,6 +218,88 @@ void main() {
     expect(restored, isA<DataFailure<void>>());
     expect(restarted.snapshot.phase, SessionPhase.guest);
   });
+
+  test('Max-Age zero is represented as an expired deletion cookie', () {
+    final WebCookie? cookie = WebCookie.parse(
+      'JSESSIONID=; Max-Age=0; Path=/',
+      apiHost: SessionStore.apiHost,
+    );
+
+    expect(cookie, isNotNull);
+    expect(cookie!.persistent, isTrue);
+    expect(cookie.expired, isTrue);
+  });
+
+  test('invalid user identity cannot be committed', () async {
+    final SessionStore store = _store(_MemoryStorage());
+    final DefaultAuthRepository repository = DefaultAuthRepository(
+      sessionStore: store,
+      source: _InvalidUserAuthSource(store),
+      coordinator: SessionCommitCoordinator(),
+    );
+
+    final DataResult<void> result = await repository.login(
+      '13800138000',
+      'secret',
+    );
+
+    expect(result, const DataFailure<void>(DataError.sessionChanged));
+    expect(store.snapshot.phase, SessionPhase.guest);
+    expect(store.snapshot.user, isNull);
+  });
+
+  test('cancelling login aborts its session before returning', () async {
+    final SessionStore store = _store(_MemoryStorage());
+    final _CancellationAuthSource source = _CancellationAuthSource(store);
+    final DefaultAuthRepository repository = DefaultAuthRepository(
+      sessionStore: store,
+      source: source,
+      coordinator: SessionCommitCoordinator(),
+    );
+    final DefaultRequestCancellationController cancellation =
+        DefaultRequestCancellationController();
+
+    final Future<DataResult<void>> login = repository.login(
+      '13800138000',
+      'secret',
+      cancellation: cancellation.signal,
+    );
+    await source.started.future;
+    cancellation.cancel();
+
+    await expectLater(login, throwsA(isA<RequestCancelledException>()));
+    expect(store.snapshot.phase, SessionPhase.guest);
+    expect(store.snapshot.user, isNull);
+  });
+
+  test('failure cleanup completes before a queued retry starts', () async {
+    final _NthBlockingStorage storage = _NthBlockingStorage(blockAtWrite: 2);
+    final SessionStore store = _store(storage);
+    final _SequenceAuthSource source = _SequenceAuthSource(store);
+    final DefaultAuthRepository repository = DefaultAuthRepository(
+      sessionStore: store,
+      source: source,
+      coordinator: SessionCommitCoordinator(),
+    );
+
+    final Future<DataResult<void>> first = repository.login(
+      '13800138000',
+      'wrong',
+    );
+    await storage.blocked.future;
+    final Future<DataResult<void>> retry = repository.login(
+      '13800138000',
+      'secret',
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(source.loginCalls, 1);
+
+    storage.release();
+    expect(await first, isA<DataFailure<void>>());
+    expect(await retry, isA<DataSuccess<void>>());
+    expect(source.loginCalls, 2);
+    expect(store.snapshot.phase, SessionPhase.authenticated);
+  });
 }
 
 class _MemoryStorage implements SessionStorage {
@@ -229,6 +312,33 @@ class _MemoryStorage implements SessionStorage {
   Future<void> write(String? value) async => payload = value;
 }
 
+class _NthBlockingStorage implements SessionStorage {
+  _NthBlockingStorage({required this.blockAtWrite});
+
+  final int blockAtWrite;
+  final Completer<void> blocked = Completer<void>();
+  final Completer<void> _release = Completer<void>();
+  int writes = 0;
+  String? payload;
+
+  void release() {
+    if (!_release.isCompleted) _release.complete();
+  }
+
+  @override
+  Future<String?> read() async => payload;
+
+  @override
+  Future<void> write(String? value) async {
+    writes++;
+    if (writes == blockAtWrite) {
+      if (!blocked.isCompleted) blocked.complete();
+      await _release.future;
+    }
+    payload = value;
+  }
+}
+
 class _StaticAuthSource implements AuthNetworkDataSource {
   _StaticAuthSource(this.store);
 
@@ -239,6 +349,7 @@ class _StaticAuthSource implements AuthNetworkDataSource {
     String username,
     String password,
     Object? session,
+    RequestCancellation cancellation,
   ) async {
     // The real interceptor observes Set-Cookie on the wire; this fake plays
     // the same role for the unit test.
@@ -283,6 +394,7 @@ class _FailingAuthSource extends _StaticAuthSource {
     String username,
     String password,
     Object? session,
+    RequestCancellation cancellation,
   ) async => <String, dynamic>{'errorCode': -1, 'data': null};
 }
 
@@ -292,4 +404,75 @@ class _ExpiredAuthSource extends _StaticAuthSource {
   @override
   Future<Map<String, dynamic>> userInfo(Object? session) async =>
       <String, dynamic>{'errorCode': -1001, 'data': null};
+}
+
+class _InvalidUserAuthSource extends _StaticAuthSource {
+  _InvalidUserAuthSource(super.store);
+
+  @override
+  Future<Map<String, dynamic>> login(
+    String username,
+    String password,
+    Object? session,
+    RequestCancellation cancellation,
+  ) async {
+    store.observeResponseCookies(session as SessionRequest, <WebCookie>[
+      WebCookie(
+        name: 'JSESSIONID',
+        value: 'invalid-user-session',
+        domain: SessionStore.apiHost,
+        path: '/',
+        expiresAtMilliseconds: DateTime.now()
+            .toUtc()
+            .add(const Duration(days: 1))
+            .millisecondsSinceEpoch,
+        persistent: true,
+      ),
+    ]);
+    return <String, dynamic>{
+      'errorCode': 0,
+      'data': <String, Object?>{'id': 0, 'username': username},
+    };
+  }
+}
+
+class _CancellationAuthSource extends _StaticAuthSource {
+  _CancellationAuthSource(super.store);
+
+  final Completer<void> started = Completer<void>();
+
+  @override
+  Future<Map<String, dynamic>> login(
+    String username,
+    String password,
+    Object? session,
+    RequestCancellation cancellation,
+  ) async {
+    started.complete();
+    await cancellation.whenCancelled;
+    throw const RequestCancelledException();
+  }
+}
+
+class _SequenceAuthSource extends _StaticAuthSource {
+  _SequenceAuthSource(super.store);
+
+  int loginCalls = 0;
+
+  @override
+  Future<Map<String, dynamic>> login(
+    String username,
+    String password,
+    Object? session,
+    RequestCancellation cancellation,
+  ) {
+    loginCalls++;
+    if (loginCalls == 1) {
+      return Future<Map<String, dynamic>>.value(<String, dynamic>{
+        'errorCode': -1,
+        'data': null,
+      });
+    }
+    return super.login(username, password, session, cancellation);
+  }
 }
