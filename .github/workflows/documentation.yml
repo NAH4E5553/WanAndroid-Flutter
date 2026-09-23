@@ -1,0 +1,21 @@
+name: Documentation checks
+
+"on":
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  documentation:
+    name: Documentation Consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - run: python3 .github/scripts/verify_docs.py

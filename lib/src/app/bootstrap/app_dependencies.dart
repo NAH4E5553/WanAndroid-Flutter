@@ -39,11 +39,14 @@ AppDependencies buildAppDependencies({ThemeStorage? themePreferences}) {
   final SessionStore sessionStore = SessionStore(
     storage: SecureSessionStorage(),
   );
+  final SessionCommitCoordinator sessionCoordinator =
+      SessionCommitCoordinator();
   final Dio dio = createWanApiDio()
-    ..interceptors.add(SessionInterceptor(sessionStore));
+    ..interceptors.add(SessionInterceptor(sessionStore, sessionCoordinator));
   final DioWanApiService service = DioWanApiService(dio: dio);
   final ArticleNetworkDataSource network = DefaultArticleNetworkDataSource(
     service,
+    sessionStore,
   );
   final DefaultCollectionRepository collectionRepository =
       DefaultCollectionRepository(
@@ -55,7 +58,7 @@ AppDependencies buildAppDependencies({ThemeStorage? themePreferences}) {
     authRepository: DefaultAuthRepository(
       sessionStore: sessionStore,
       source: DefaultAuthNetworkDataSource(service),
-      coordinator: SessionCommitCoordinator(),
+      coordinator: sessionCoordinator,
     ),
     collectionRepository: collectionRepository,
     network: network,

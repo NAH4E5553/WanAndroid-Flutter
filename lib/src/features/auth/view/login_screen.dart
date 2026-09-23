@@ -1,99 +1,82 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:wanandroid_flutter/src/core/providers.dart';
 import 'package:wanandroid_flutter/src/core/result/data_result.dart';
+import 'package:wanandroid_flutter/src/features/auth/state/login_ui_state.dart';
 
-/// 登录页；视觉与交互按 Android 基线（UI-07）还原：
-/// 欢迎标题、下划线输入框、密码显隐、圆形主按钮、协议与注册/忘记密码占位。
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({required this.onBack, super.key});
+/// Login view. Request ownership and navigation live in the route-scoped
+/// view model so leaving this screen can cancel an in-flight login.
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({
+    required this.state,
+    required this.onUsernameChanged,
+    required this.onPasswordChanged,
+    required this.onPasswordFocused,
+    required this.onSubmit,
+    required this.onBack,
+    super.key,
+  });
 
+  final LoginUiState state;
+  final ValueChanged<String> onUsernameChanged;
+  final ValueChanged<String> onPasswordChanged;
+  final VoidCallback onPasswordFocused;
+  final Future<void> Function() onSubmit;
   final VoidCallback onBack;
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final TextEditingController _username = TextEditingController();
-  final TextEditingController _password = TextEditingController();
+class _LoginScreenState extends State<LoginScreen> {
+  late final TextEditingController _username;
+  late final TextEditingController _password;
+  final FocusNode _usernameFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
   bool _showPassword = false;
-  bool _submitting = false;
-  bool _phoneError = false;
-  DataError? _error;
-  bool _completed = false;
 
   @override
   void initState() {
     super.initState();
-    _username.addListener(_onUsernameChanged);
-    _password.addListener(() {
-      if (mounted) {
-        setState(() {});
-      }
-    });
+    _username = TextEditingController(text: widget.state.username);
+    _password = TextEditingController(text: widget.state.password);
+    _passwordFocus.addListener(_notifyPasswordFocus);
+  }
+
+  @override
+  void didUpdateWidget(LoginScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _synchronize(_username, widget.state.username);
+    _synchronize(_password, widget.state.password);
   }
 
   @override
   void dispose() {
+    _passwordFocus.removeListener(_notifyPasswordFocus);
     _username.dispose();
     _password.dispose();
+    _usernameFocus.dispose();
     _passwordFocus.dispose();
     super.dispose();
   }
 
-  // Editing clears the format error like the Android baseline; the password
-  // focus or a submit triggers the actual validation.
-  void _onUsernameChanged() {
-    if (mounted) {
-      setState(() {
-        if (_phoneError) {
-          _phoneError = false;
-        }
-      });
+  void _synchronize(TextEditingController controller, String value) {
+    if (controller.text == value) return;
+    controller.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
+  }
+
+  void _notifyPasswordFocus() {
+    if (_passwordFocus.hasFocus) {
+      widget.onPasswordFocused();
     }
   }
-
-  bool _isValidPhone() {
-    final String value = _username.text.trim();
-    return RegExp(r'^1[3-9][0-9]{9}$').hasMatch(value);
-  }
-
-  bool get _canSubmit =>
-      _isValidPhone() &&
-      _password.text.isNotEmpty &&
-      !_submitting &&
-      !_completed;
 
   Future<void> _submit() async {
-    if (!_isValidPhone()) {
-      setState(() => _phoneError = true);
-      return;
-    }
-    setState(() {
-      _submitting = true;
-      _error = null;
-    });
-    final DataResult<void> result = await ref
-        .read(authRepositoryProvider)
-        .login(_username.text.trim(), _password.text);
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _submitting = false;
-      if (result is DataSuccess<void>) {
-        _completed = true;
-      } else {
-        _error = (result as DataFailure<void>).error;
-      }
-    });
-    if (_completed && context.mounted) {
-      unawaited(Navigator.of(context).maybePop());
-    }
+    FocusScope.of(context).unfocus();
+    await widget.onSubmit();
   }
 
   void _showNotice(String message) {
@@ -117,6 +100,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final LoginUiState state = widget.state;
     return Scaffold(
       appBar: AppBar(leading: BackButton(onPressed: widget.onBack)),
       body: SafeArea(
@@ -146,31 +130,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 44),
                   _LoginInput(
                     controller: _username,
-                    label: '手机号',
+                    focusNode: _usernameFocus,
+                    semanticsLabel: '手机号',
                     placeholder: '请输入手机号',
-                    enabled: !_submitting,
+                    enabled: !state.submitting,
                     keyboardType: TextInputType.phone,
-                    errorText: _phoneError ? '手机号输入有误，请重新输入' : null,
+                    textInputAction: TextInputAction.next,
+                    autofillHints: const <String>[AutofillHints.username],
+                    errorText: state.phoneError ? '手机号输入有误，请重新输入' : null,
+                    onChanged: widget.onUsernameChanged,
+                    onSubmitted: (_) => _passwordFocus.requestFocus(),
                   ),
                   const SizedBox(height: 28),
                   _LoginInput(
                     controller: _password,
                     focusNode: _passwordFocus,
-                    label: '密码',
+                    semanticsLabel: '密码',
                     placeholder: '请输入密码',
-                    enabled: !_submitting,
+                    enabled: !state.submitting,
                     keyboardType: TextInputType.visiblePassword,
+                    textInputAction: TextInputAction.done,
+                    autofillHints: const <String>[AutofillHints.password],
                     obscureText: !_showPassword,
-                    onFocusChanged: () {
-                      // The baseline validates on password focus and on submit.
-                      if (!_isValidPhone() && _username.text.isNotEmpty) {
-                        setState(() => _phoneError = true);
-                      }
+                    onChanged: widget.onPasswordChanged,
+                    onSubmitted: (_) {
+                      if (state.canSubmit) unawaited(_submit());
                     },
-                    trailing: IconButton(
+                    suffixIcon: IconButton(
                       tooltip: _showPassword ? '隐藏密码' : '显示密码',
-                      onPressed: () =>
-                          setState(() => _showPassword = !_showPassword),
+                      onPressed: state.submitting
+                          ? null
+                          : () =>
+                                setState(() => _showPassword = !_showPassword),
                       icon: Icon(
                         _showPassword
                             ? Icons.visibility_outlined
@@ -179,36 +170,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Text('登录即代表您已阅读并同意', style: theme.textTheme.bodySmall),
-                      GestureDetector(
-                        onTap: () => _showNotice('用户协议内容暂未提供。'),
-                        child: Text(
-                          '《用户协议》',
-                          style: theme.textTheme.bodySmall!.copyWith(
-                            color: theme.colorScheme.primary,
+                  Center(
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: <Widget>[
+                        Text('登录即代表您已阅读并同意', style: theme.textTheme.bodySmall),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            minimumSize: Size.zero,
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
+                          onPressed: () => _showNotice('用户协议内容暂未提供。'),
+                          child: const Text('《用户协议》'),
                         ),
-                      ),
-                      Text('和', style: theme.textTheme.bodySmall),
-                      GestureDetector(
-                        onTap: () => _showNotice('隐私政策内容暂未提供。'),
-                        child: Text(
-                          '《隐私政策》',
-                          style: theme.textTheme.bodySmall!.copyWith(
-                            color: theme.colorScheme.primary,
+                        Text('和', style: theme.textTheme.bodySmall),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            minimumSize: Size.zero,
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
+                          onPressed: () => _showNotice('隐私政策内容暂未提供。'),
+                          child: const Text('《隐私政策》'),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                  if (_error != null)
+                  if (state.error != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 16),
                       child: Text(
-                        _error == DataError.service
+                        state.error == DataError.service
                             ? '登录未成功，请检查手机号和密码后重试'
                             : '登录未成功，请稍后重试',
                         style: theme.textTheme.bodySmall!.copyWith(
@@ -224,8 +218,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         shape: const StadiumBorder(),
                         minimumSize: const Size.fromHeight(50),
                       ),
-                      onPressed: _canSubmit ? _submit : null,
-                      icon: _submitting
+                      onPressed: state.canSubmit ? _submit : null,
+                      icon: state.submitting
                           ? const SizedBox(
                               width: 18,
                               height: 18,
@@ -233,7 +227,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             )
                           : null,
                       label: Text(
-                        _submitting ? '正在登录…' : '登录',
+                        state.submitting ? '正在登录…' : '登录',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -249,7 +243,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             _showNotice('注册功能暂未开放，请使用已有的 WanAndroid 账号登录。'),
                         child: const Text('注册'),
                       ),
-                      const VerticalDivider(width: 28, thickness: 1),
+                      const SizedBox(
+                        height: 24,
+                        child: VerticalDivider(width: 28, thickness: 1),
+                      ),
                       TextButton(
                         onPressed: () => _showNotice('找回密码功能暂未开放。'),
                         child: const Text('忘记密码'),
@@ -269,57 +266,58 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 class _LoginInput extends StatelessWidget {
   const _LoginInput({
     required this.controller,
-    required this.label,
+    required this.focusNode,
+    required this.semanticsLabel,
     required this.placeholder,
     required this.enabled,
     required this.keyboardType,
-    this.focusNode,
+    required this.textInputAction,
+    required this.autofillHints,
+    required this.onChanged,
+    required this.onSubmitted,
     this.obscureText = false,
     this.errorText,
-    this.trailing,
-    this.onFocusChanged,
+    this.suffixIcon,
   });
 
   final TextEditingController controller;
-  final FocusNode? focusNode;
-  final String label;
+  final FocusNode focusNode;
+  final String semanticsLabel;
   final String placeholder;
   final bool enabled;
   final TextInputType keyboardType;
+  final TextInputAction textInputAction;
+  final Iterable<String> autofillHints;
   final bool obscureText;
   final String? errorText;
-  final Widget? trailing;
-  final VoidCallback? onFocusChanged;
+  final Widget? suffixIcon;
+  final ValueChanged<String> onChanged;
+  final ValueChanged<String> onSubmitted;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Focus(
-          onFocusChange: (bool focused) {
-            if (focused) {
-              onFocusChanged?.call();
-            }
-          },
-          child: TextField(
-            controller: controller,
-            focusNode: focusNode,
-            enabled: enabled,
-            obscureText: obscureText,
-            keyboardType: keyboardType,
-            autocorrect: false,
-            decoration: InputDecoration(
-              labelText: label,
-              hintText: placeholder,
-              errorText: errorText,
-              border: const UnderlineInputBorder(),
-            ),
-          ),
+    return Semantics(
+      label: semanticsLabel,
+      textField: true,
+      child: TextField(
+        controller: controller,
+        focusNode: focusNode,
+        enabled: enabled,
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        textInputAction: textInputAction,
+        autofillHints: autofillHints,
+        autocorrect: false,
+        enableSuggestions: false,
+        onChanged: onChanged,
+        onSubmitted: onSubmitted,
+        decoration: InputDecoration(
+          hintText: placeholder,
+          errorText: errorText,
+          suffixIcon: suffixIcon,
+          border: const UnderlineInputBorder(),
         ),
-        if (trailing != null)
-          Align(alignment: Alignment.centerRight, child: trailing!),
-      ],
+      ),
     );
   }
 }

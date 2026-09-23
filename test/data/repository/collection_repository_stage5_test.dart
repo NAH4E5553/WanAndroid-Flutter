@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wanandroid_flutter/src/core/cancellation/request_cancellation.dart';
 import 'package:wanandroid_flutter/src/core/result/data_result.dart';
 import 'package:wanandroid_flutter/src/data/network/auth_network_data_source.dart';
 import 'package:wanandroid_flutter/src/data/network/collection_network_data_source.dart';
@@ -33,6 +34,7 @@ class _FakeAuthSource implements AuthNetworkDataSource {
     String username,
     String password,
     Object? session,
+    RequestCancellation cancellation,
   ) async {
     store.observeResponseCookies(session as SessionRequest, <WebCookie>[
       WebCookie(

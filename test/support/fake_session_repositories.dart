@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:wanandroid_flutter/src/core/cancellation/request_cancellation.dart';
 import 'package:wanandroid_flutter/src/core/result/data_result.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/auth_repository.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/collection_repository.dart';
@@ -19,8 +20,11 @@ class FakeAuthRepository extends ChangeNotifier implements AuthRepository {
   );
 
   @override
-  Future<DataResult<void>> login(String username, String password) async =>
-      const DataSuccess<void>(null);
+  Future<DataResult<void>> login(
+    String username,
+    String password, {
+    RequestCancellation cancellation = const LiveRequestCancellation(),
+  }) async => const DataSuccess<void>(null);
 
   @override
   Future<LogoutOutcome> logout() async =>

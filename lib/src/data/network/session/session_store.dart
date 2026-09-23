@@ -1,7 +1,7 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:wanandroid_flutter/src/core/cancellation/request_cancellation.dart';
 import 'package:wanandroid_flutter/src/data/network/session/session_models.dart';
 import 'package:wanandroid_flutter/src/data/network/session/web_cookie.dart';
 import 'package:wanandroid_flutter/src/data/storage/session_storage.dart';
@@ -135,13 +135,27 @@ class SessionStore extends ChangeNotifier {
         .join('; ');
   }
 
-  Future<bool> commitLogin(SessionRequest request, User user) async {
+  Future<bool> commitLogin(
+    SessionRequest request,
+    User user, {
+    RequestCancellation cancellation = const LiveRequestCancellation(),
+  }) async {
+    cancellation.throwIfCancelled();
     if (!isCurrent(request)) {
       return false;
     }
     final List<WebCookie> received =
         _pendingResponseCookies.remove(request) ?? const <WebCookie>[];
-    return _persistAuthenticated(request, user, received);
+    if (!_validUser(user)) {
+      await _clearLocked(SessionNotice.none);
+      return false;
+    }
+    return _persistAuthenticated(
+      request,
+      user,
+      received,
+      cancellation: cancellation,
+    );
   }
 
   /// Attaches a verified identity to a restored session; a different account
@@ -170,16 +184,19 @@ class SessionStore extends ChangeNotifier {
     }
   }
 
-  void abortLogin(SessionRequest request) {
+  Future<void> abortLogin(SessionRequest request) async {
+    _pendingResponseCookies.remove(request);
     if (isCurrent(request)) {
-      unawaited(_clear(SessionNotice.none));
+      await _clear(SessionNotice.none);
     }
   }
 
   /// Queues Set-Cookie values observed on a tagged response; applied on the
   /// next [flushResponseCookies] for that request.
   void observeResponseCookies(SessionRequest request, List<WebCookie> cookies) {
-    if (cookies.isEmpty) {
+    if (cookies.isEmpty ||
+        request.mode == SessionRequestMode.logout ||
+        !isCurrent(request)) {
       return;
     }
     final List<WebCookie> merged = List<WebCookie>.of(
@@ -192,10 +209,7 @@ class SessionStore extends ChangeNotifier {
   Future<void> flushResponseCookies(SessionRequest request) async {
     final List<WebCookie> received =
         _pendingResponseCookies.remove(request) ?? const <WebCookie>[];
-    if (received.isEmpty ||
-        received.isEmpty ||
-        !isCurrent(request) ||
-        _snapshot.user == null) {
+    if (received.isEmpty || !isCurrent(request) || _snapshot.user == null) {
       return;
     }
     final Map<(String, String, String), WebCookie> next =
@@ -223,6 +237,7 @@ class SessionStore extends ChangeNotifier {
       return;
     }
     if (valid.length > _maxCookies) {
+      await _clear(SessionNotice.storageError);
       return;
     }
     await _persist(_snapshot.user!, valid);
@@ -235,35 +250,38 @@ class SessionStore extends ChangeNotifier {
   Future<bool> _persistAuthenticated(
     SessionRequest request,
     User user,
-    List<WebCookie> received,
-  ) async {
-    final List<WebCookie> next = <WebCookie>[];
+    List<WebCookie> received, {
+    RequestCancellation cancellation = const LiveRequestCancellation(),
+  }) async {
+    final Map<(String, String, String), WebCookie> next =
+        <(String, String, String), WebCookie>{};
     for (final WebCookie cookie in received) {
       if (!_acceptable(cookie) || cookie.expired) {
         continue;
       }
-      if (!next.any(
-        (WebCookie existing) =>
-            existing.name == cookie.name &&
-            existing.domain == cookie.domain &&
-            existing.path == cookie.path,
-      )) {
-        next.add(cookie);
-      }
+      next[(cookie.name, cookie.domain, cookie.path)] = cookie;
       if (next.length > _maxCookies) {
-        break;
+        await _clearLocked(SessionNotice.storageError);
+        return false;
       }
     }
     if (next.isEmpty) {
       await _clearLocked(SessionNotice.expired);
       return false;
     }
+    final List<WebCookie> cookies = next.values.toList(growable: false);
     try {
-      await _persist(user, next);
+      await _persist(user, cookies);
     } on Object {
       throw const SessionStorageException();
     }
-    _cookies = next;
+    if (cancellation.isCancelled) {
+      // A route can leave while the secure-storage write is in flight. Never
+      // publish the just-persisted identity, even transiently, in that case.
+      await _clearLocked(SessionNotice.none);
+      throw const RequestCancelledException();
+    }
+    _cookies = cookies;
     _snapshot = SessionSnapshot(
       phase: SessionPhase.authenticated,
       user: user,
@@ -304,11 +322,11 @@ class SessionStore extends ChangeNotifier {
   /// as [SessionNotice.storageError] because the stale payload is unremovable.
   Future<void> _clear(SessionNotice notice) async {
     await _clearLocked(notice);
-    notifyListeners();
   }
 
   Future<bool> _clearLocked(SessionNotice notice) async {
     _cookies = const <WebCookie>[];
+    _pendingResponseCookies.clear();
     bool success = true;
     try {
       await _storage.write(null);

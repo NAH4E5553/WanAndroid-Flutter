@@ -1,0 +1,7 @@
+import '../../../data/repository/contract/repository.dart';
+
+class HomeViewModel {
+  HomeViewModel(this.repository);
+
+  final Repository repository;
+}

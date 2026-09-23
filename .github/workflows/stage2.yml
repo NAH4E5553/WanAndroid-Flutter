@@ -1,9 +1,10 @@
-name: Stage 4 checks
+name: Stage 5 checks
 
-on:
+"on":
   pull_request:
-    paths-ignore:
-      - '**/*.md'
+
+permissions:
+  contents: read
 
 concurrency:
   group: stage4-${{ github.event.pull_request.number || github.ref }}
@@ -13,10 +14,48 @@ env:
   PUB_HOSTED_URL: https://pub.flutter-io.cn
 
 jobs:
+  classify-changes:
+    name: Classify PR changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.classify.outputs.code }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Detect non-Markdown changes
+        id: classify
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import subprocess
+
+          changed = subprocess.check_output(
+              ["git", "diff", "--name-only", "-z", os.environ["BASE_SHA"], "HEAD"]
+          ).split(b"\0")
+          code = any(path and not path.lower().endswith(b".md") for path in changed)
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"code={str(code).lower()}\n")
+          PY
+
   analyze-and-test:
+    name: Analyze and Test
+    needs: classify-changes
+    if: needs.classify-changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify CI and OCR configuration
+        run: |
+          python -m pip install -r .github/tests/requirements.txt
+          python .github/scripts/prepare_ocr_action.py
+          python -m unittest discover -s .github/tests -v
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.47.4
@@ -30,6 +69,8 @@ jobs:
       - run: dart --packages=tool/standalone_package_config.json tool/analyze_project.dart
       - run: dart --packages=tool/standalone_package_config.json tool/verify_architecture.dart
       - run: dart --packages=tool/standalone_package_config.json tool/verify_architecture_fixtures.dart
+      - run: dart --packages=tool/standalone_package_config.json tool/verify_sensitive_data.dart
+      - run: dart --packages=tool/standalone_package_config.json tool/verify_sensitive_data_fixtures.dart
       - run: dart --packages=tool/standalone_package_config.json tool/verify_stage1.dart
       - run: dart --packages=tool/standalone_package_config.json tool/verify_stage2.dart
       - run: dart --packages=tool/standalone_package_config.json tool/verify_stage3.dart
@@ -39,6 +80,9 @@ jobs:
       - run: flutter test --coverage
 
   android-integration:
+    name: Android Integration
+    needs: classify-changes
+    if: needs.classify-changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -87,6 +131,9 @@ jobs:
           script: flutter test integration_test/stage5_ci_test.dart -d emulator-5554 --no-pub --reporter expanded
 
   android-shell:
+    name: Android APK
+    needs: classify-changes
+    if: needs.classify-changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -102,7 +149,58 @@ jobs:
           cache-read-only: false
       - run: flutter build apk --debug --no-pub
 
+  ios-integration:
+    name: iOS Integration
+    needs: classify-changes
+    if: needs.classify-changes.outputs.code == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.4
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Select and boot an iPhone simulator
+        id: simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEVICE_ID=$(python3 - <<'PY'
+          import json
+          import subprocess
+
+          payload = json.loads(
+              subprocess.check_output(
+                  ["xcrun", "simctl", "list", "devices", "available", "-j"],
+                  text=True,
+              )
+          )
+          for runtime, devices in payload["devices"].items():
+              if "iOS" not in runtime:
+                  continue
+              for device in devices:
+                  if device.get("isAvailable") and device["name"].startswith("iPhone"):
+                      print(device["udid"])
+                      raise SystemExit(0)
+          raise SystemExit("No available iPhone simulator")
+          PY
+          )
+          xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+          echo "device_id=$DEVICE_ID" >> "$GITHUB_OUTPUT"
+      - name: Run iOS integration suite
+        run: >-
+          flutter test integration_test/stage5_ci_test.dart
+          -d "${{ steps.simulator.outputs.device_id }}"
+          --no-pub --reporter expanded
+
   ios-shell:
+    name: iOS Simulator
+    needs: classify-changes
+    if: needs.classify-changes.outputs.code == 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v6

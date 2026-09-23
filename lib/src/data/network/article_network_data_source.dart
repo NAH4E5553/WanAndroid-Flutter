@@ -34,13 +34,12 @@ abstract interface class ArticleNetworkDataSource {
 /// attach cookies when a session is active; guests stay cookie-free.
 final class DefaultArticleNetworkDataSource
     implements ArticleNetworkDataSource {
-  DefaultArticleNetworkDataSource(this._service, [SessionStore? sessions])
-    : _sessions = sessions;
+  DefaultArticleNetworkDataSource(this._service, this._sessions);
 
   final WanApiService _service;
-  final SessionStore? _sessions;
+  final SessionStore _sessions;
 
-  Object? _sessionTag() => _sessions?.capture();
+  Object _sessionTag() => _sessions.capture();
 
   @override
   Future<Map<String, dynamic>> articles(

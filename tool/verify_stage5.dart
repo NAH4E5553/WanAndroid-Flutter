@@ -17,13 +17,21 @@ void main() {
     'lib/src/data/repository/contract/collection_repository.dart',
     'lib/src/data/repository/implementation/default_auth_repository.dart',
     'lib/src/data/repository/implementation/default_collection_repository.dart',
+    'lib/src/features/auth/policy/phone_number_policy.dart',
+    'lib/src/features/auth/state/login_ui_state.dart',
+    'lib/src/features/auth/navigation/auth_navigation.dart',
     'lib/src/features/auth/view/login_screen.dart',
+    'lib/src/features/auth/view_model/login_view_model.dart',
     'lib/src/features/profile/view/profile_screen.dart',
     'lib/src/features/profile/view/theme_settings_screen.dart',
     'lib/src/features/profile/view/collections_screen.dart',
     'lib/src/core/ui/swipe_reveal_action_item.dart',
     'test/data/session/session_stage5_test.dart',
+    'test/data/session/session_interceptor_stage5_test.dart',
+    'test/data/network/article_network_data_source_session_test.dart',
     'test/data/repository/collection_repository_stage5_test.dart',
+    'test/features/auth/login_screen_test.dart',
+    'test/features/auth/login_view_model_test.dart',
     'test/features/profile/theme_settings_stage5_test.dart',
     'integration_test/stage5_ci_test.dart',
   ]) {
@@ -43,10 +51,58 @@ void main() {
       'lib/src/features/reader/view/article_reader_screen.dart',
       '_toggleCollect',
     ),
+    (
+      'lib/src/app/bootstrap/app_dependencies.dart',
+      'DefaultArticleNetworkDataSource(\n    service,\n    sessionStore,',
+    ),
+    (
+      'lib/src/features/auth/navigation/auth_navigation.dart',
+      'viewModel.cancel()',
+    ),
+    (
+      'lib/src/data/network/session/session_interceptor.dart',
+      'flushResponseCookies',
+    ),
+    (
+      'test/data/session/session_interceptor_stage5_test.dart',
+      'SESSION-01 delayed old response cannot expire or rotate a newer session',
+    ),
+    (
+      'test/features/auth/login_view_model_test.dart',
+      'UI-07 leaving cancels login and ignores a late success',
+    ),
+    (
+      'integration_test/stage5_ci_test.dart',
+      'stage 5 UI-07: theme, guest gates and controlled login',
+    ),
+    (
+      'integration_test/stage5_ci_test.dart',
+      'stage 5 UI-07: leaving login cancels the in-flight request',
+    ),
   ]) {
     final File file = File(path);
     if (!file.existsSync() || !file.readAsStringSync().contains(content)) {
       failures.add('$path does not contain: $content');
+    }
+  }
+  final String loginView = File('lib/src/features/auth/view/login_screen.dart')
+      .readAsStringSync();
+  for (final String forbidden in <String>[
+    'authRepositoryProvider',
+    'flutter_riverpod',
+    'labelText:',
+  ]) {
+    if (loginView.contains(forbidden)) {
+      failures.add('login_screen.dart contains forbidden coupling: $forbidden');
+    }
+  }
+  for (final String path in <String>[
+    'integration_test/real_login_debug_test.dart',
+    'lib/src/data/mapper/wan_response_mapper.dart',
+    'lib/src/data/repository/implementation/default_auth_repository.dart',
+  ]) {
+    if (File(path).readAsStringSync().contains('print(')) {
+      failures.add('$path must not print account or server response data');
     }
   }
   if (failures.isNotEmpty) {

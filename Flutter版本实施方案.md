@@ -664,6 +664,9 @@ Flutter 官方建议大量单元测试和 Widget 测试，并使用少量集成�
 ```bash
 dart format --output=none --set-exit-if-changed .
 dart run tool/verify_architecture.dart
+dart run tool/verify_architecture_fixtures.dart
+dart run tool/verify_sensitive_data.dart
+dart run tool/verify_sensitive_data_fixtures.dart
 flutter analyze
 flutter test --coverage
 flutter build apk --debug
@@ -688,9 +691,12 @@ CI 建议：
 - macOS Runner：iOS Simulator 无签名构建和 iOS 集成测试。
 - 固定 Flutter stable 版本，不使用浮动环境。
 - PR 必需检查与本地统一入口一致。
+- 架构门禁同时运行正反夹具：Feature View不得直接访问组合根Provider或Data层，ViewModel只通过Repository契约进入数据边界；既有债务只能用精确路径临时豁免并记录删除条件。
+- 敏感数据门禁扫描未批准手机号、账号Cookie和认证/会话直接日志，同时用负例夹具证明规则确实会失败；静态扫描不替代Git历史审计或人工隐私复核。
 - 当前阶段完整门禁只在包含非Markdown变更的PR执行，纯文档PR及合并后的`main`不重复消耗双端构建；同一PR的新提交取消旧运行。
 - 代码生成及生成物一致性在Analyze任务集中执行一次；平台构建直接消费仓库内已提交生成物，缺失时仍由编译或集中diff门禁失败。
 - Android设备流程由单一阶段入口在一次安装/调试连接中连续注册，避免按文件重复启动应用；Gradle使用开源Basic缓存，固定API/架构的AVD使用快照缓存。PR #4远端单入口2/2通过并保存首次AVD快照；该PR作用域缓存不自动供下一PR读取。缓存未命中不改变测试内容，后续命中耗时仍须以实际运行记录为准。
+- AI代码审查仅作独立补充证据：Workflow从PR base commit加载受信审查器与规则，锁定上游源码身份与哈希，使用最小权限且不上传原始模型输出。默认关闭；只有用户明确同意外部模型代码传输、成本和凭据边界，canary验证通过，并将稳定检查加入仓库Ruleset后，才可设为Required。首次引入该Workflow的PR不能自审。
 - 发布候选额外执行 Android Release/App Bundle、混淆与签名配置检查，以及 iOS 真机、Release/Archive、Entitlements、Keychain 和隐私清单检查；未配置正式签名时明确记录为未验证，不能用 Simulator 构建代替。
 
 ## 14. 分阶段实施
@@ -828,3 +834,7 @@ CI 建议：
 
 2026-09-21阶段5实施回填：主题持久化与失败回滚、会话权威（SessionStore/串行提交协调器/Dio会话拦截器）、登录恢复/退出/登录门禁、完整收藏契约（articlePage合并、reconcile、setCollected目标语义）、我的/收藏/主题设置/登录四屏与左滑容器复用、阅读器收藏菜单接入已落地。单测82/82、阶段1～5结构检查、架构检查、Android/iOS模拟器stage4 9/9+stage5 1/1、双端Debug构建通过。真实账号与真实收藏写接口未接；MI 9真机复验因USB断开待补；逐页视觉/无障碍/真实进程恢复/发布门禁留阶段6。当前状态以状态记录为准。
 2026-09-21真实账号登录调试回填：用户授权以其实测账号排查登录失败。curl直连确认服务端凭据有效并返回5个Set-Cookie；定位两个客户端缺陷——WebCookie把无Expires的会话Cookie记为expires=0被判过期丢弃、Expires日期解析只认空格格式不认服务器实际发送的连字符Netscape格式——均已修复并以确定性回归单测覆盖；auth仓储与信封映射加入合规诊断日志（码/消息/计数，无密码/Cookie值）。修复后模拟器对真实服务端端到端验证通过：登录→authenticated→收藏列表返回真实数据。调试挂车dart-define门控、凭据运行时传入不入库；真实账号验收与Fake自动化分开记录；MI 9复测待用户允许USB安装。
+
+2026-09-22阶段5登录/会话审查修正回填：移除测试夹具真实手机号及登录链路中的账号、服务端消息和数量日志，取代上一条“合规诊断日志”实现选择；生产文章/搜索/专题文章读取强制注入SessionStore，会话协调器同时覆盖登录/恢复/退出和NORMAL响应Cookie刷新、401/`-1001`过期。登录取消信号贯穿ViewModel→Repository→Dio，取消和失败清理必须等待串行队列；非法用户响应拒绝提交。登录页保持View→ViewModel→Repository边界，返回取消、恢复态退出、Done提交、内联密码显隐、无重复标签、错误编辑清除和200%字体换行均有回归。当前本地全量103/103、静态分析、架构、阶段1～5结构检查及Android APK Debug、iOS Simulator Debug构建通过；设备列表仅有macOS/Chrome，双端设备集成环境阻塞未执行，真机手势、真实账号本轮复验和远端CI亦未执行，当前状态与历史清理边界以状态记录为准。
+
+2026-09-22质量门禁回填：架构检查新增Feature View禁止直接读取组合根Provider或依赖Data层，并以7个正反夹具自证；敏感数据检查扫描手机号、数字账号Cookie及认证/会话直接日志，并以4个正反夹具自证；PR模板要求契约ID、证据和失败/未执行/环境阻塞分列。完整CI增加Workflow配置回归与iOS Integration任务。OpenCodeReview基础设施采用PR base受信配置、固定上游源码SHA/哈希和最小权限，默认关闭。当前本地96源码架构、255文本敏感数据、18项CI/OCR配置、47个文档链接、全量112/112、Android 15/API35与iPhone 18 Pro/iOS27 stage5各2/2及双端Debug构建通过；首次iOS集成因测试用精确文本查找含换行标题而2例误报失败，修正后双端复验通过。远端CI、Ruleset及OCR模型canary未执行，未配置凭据、未调用模型、未外传代码。现有Profile页面的5条精确架构豁免是待删除债务，不构成新代码的常规例外。

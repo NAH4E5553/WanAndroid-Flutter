@@ -8,6 +8,9 @@ void main() {
     'relative_violation': 'FEATURE_DATA_IMPLEMENTATION',
     'barrel_violation': 'FEATURE_DATA_IMPLEMENTATION',
     'composition_root_pass': null,
+    'view_repository_contract_violation': 'FEATURE_PRESENTATION_DATA',
+    'view_provider_composition_violation': 'VIEW_PROVIDER_COMPOSITION',
+    'view_model_repository_contract_pass': null,
   };
   final List<String> failures = <String>[];
   for (final MapEntry<String, String?> entry in expectations.entries) {
@@ -51,7 +54,9 @@ void main() {
     exitCode = 1;
     return;
   }
-  stdout.writeln('Architecture fixture check passed (4 fixtures).');
+  stdout.writeln(
+    'Architecture fixture check passed (${expectations.length} fixtures).',
+  );
 }
 
 void _copyFixture(Directory source, Directory destination) {

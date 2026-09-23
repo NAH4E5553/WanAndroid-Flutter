@@ -46,6 +46,9 @@
 - 目录和文件名使用小写下划线；测试目录与被测职责对应。
 - 不提交生成缓存、构建产物、设备日志或截图临时文件；结论和必要摘要写入 Markdown。
 - 密钥、Cookie、密码、签名文件和真实用户数据不得进入源码、日志或文档。
+- 架构与敏感数据门禁必须同时运行本体和正反夹具；文件存在、测试名称或源码字符串只能作为结构提示，不能代替行为测试。
+- OpenCodeReview 默认关闭，仅作同仓库非草稿 PR 的辅助语义审查；启用前必须单独确认 Flutter 代码上下文外发、模型服务和费用边界，并为本仓库配置独立凭据。OCR 不替代确定性 CI、设备验证或人工判断。
+- OCR 适配器、固定哈希和规则必须从 PR 基线 SHA 加载，不执行 PR head 的适配脚本；原始模型响应和 stderr 不进入日志或 Artifact。详细边界见 `.github/CI_GUIDE.md`。
 
 ## 阶段 0 验证入口
 
@@ -76,6 +79,8 @@ dart format --output=none --set-exit-if-changed .
 dart --packages=tool/standalone_package_config.json tool/analyze_project.dart
 dart --packages=tool/standalone_package_config.json tool/verify_architecture.dart
 dart --packages=tool/standalone_package_config.json tool/verify_architecture_fixtures.dart
+dart --packages=tool/standalone_package_config.json tool/verify_sensitive_data.dart
+dart --packages=tool/standalone_package_config.json tool/verify_sensitive_data_fixtures.dart
 dart --packages=tool/standalone_package_config.json tool/verify_stage1.dart
 flutter analyze
 flutter test

@@ -167,8 +167,15 @@ class ArchitectureVerifier {
     if (from.first == 'features') {
       final String feature = from.length > 1 ? from[1] : '';
       final String area = from.length > 2 ? from[2] : '';
+      final String sourceRelative = _relative(source);
+      final String targetRelative = _relative(target);
       if (to.first == 'features' && to.length > 1 && to[1] != feature) {
         return 'FEATURE_CROSS_IMPLEMENTATION';
+      }
+      if (area == 'view' &&
+          targetRelative == 'core/providers.dart' &&
+          !_isTemporaryArchitectureDebt(sourceRelative, targetRelative)) {
+        return 'VIEW_PROVIDER_COMPOSITION';
       }
       if (<String>{
             'view',
@@ -179,6 +186,11 @@ class ArchitectureVerifier {
           }.contains(area) &&
           targetDataBoundary) {
         return 'FEATURE_DATA_IMPLEMENTATION';
+      }
+      if (<String>{'view', 'component', 'state', 'policy'}.contains(area) &&
+          to.first == 'data' &&
+          !_isTemporaryArchitectureDebt(sourceRelative, targetRelative)) {
+        return 'FEATURE_PRESENTATION_DATA';
       }
       if (area == 'view_model' && to.first == 'core' && to[1] == 'ui') {
         return 'VIEW_MODEL_UI';
@@ -209,6 +221,21 @@ class ArchitectureVerifier {
       return 'REPOSITORY_CONTRACT_IMPLEMENTATION';
     }
     return null;
+  }
+
+  bool _isTemporaryArchitectureDebt(String source, String target) {
+    // These exact dependencies predate the stricter presentation whitelist.
+    // They remain visible instead of weakening the rule for an entire folder.
+    // Remove each entry when the corresponding profile screen is moved behind
+    // a ViewModel; no new source/target pair may be added as routine work.
+    const Set<String> allowed = <String>{
+      'features/profile/view/collections_screen.dart->core/providers.dart',
+      'features/profile/view/collections_screen.dart->data/repository/contract/collection_repository.dart',
+      'features/profile/view/profile_screen.dart->core/providers.dart',
+      'features/profile/view/profile_screen.dart->data/repository/contract/auth_repository.dart',
+      'features/profile/view/theme_settings_screen.dart->core/providers.dart',
+    };
+    return allowed.contains('$source->$target');
   }
 
   bool _startsWith(List<String> value, List<String> prefix) {
