@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wanandroid_flutter/src/core/cancellation/request_cancellation.dart';
 import 'package:wanandroid_flutter/src/core/result/data_result.dart';
 import 'package:wanandroid_flutter/src/data/network/auth_network_data_source.dart';
 import 'package:wanandroid_flutter/src/data/network/collection_network_data_source.dart';
+import 'package:wanandroid_flutter/src/data/network/service/wan_api_service.dart';
 import 'package:wanandroid_flutter/src/data/network/session/session_commit_coordinator.dart';
 import 'package:wanandroid_flutter/src/data/network/session/session_models.dart';
 import 'package:wanandroid_flutter/src/data/network/session/session_store.dart';
@@ -76,6 +79,7 @@ class _FakeCollectionSource implements CollectionNetworkDataSource {
   final List<List<Map<String, Object?>>> pages = <List<Map<String, Object?>>>[];
   DataError? listFailure;
   DataError? writeFailure;
+  bool commitUncollectRecordBeforeFailure = false;
   final List<String> writeCalls = <String>[];
 
   @override
@@ -126,7 +130,17 @@ class _FakeCollectionSource implements CollectionNetworkDataSource {
     Object? session,
   ) async {
     writeCalls.add('uncollectRecord:$recordId/$originId');
+    if (commitUncollectRecordBeforeFailure) {
+      for (final List<Map<String, Object?>> page in pages) {
+        page.removeWhere(
+          (Map<String, Object?> record) => record['id'] == recordId,
+        );
+      }
+    }
     if (writeFailure != null) {
+      if (writeFailure == DataError.network) {
+        throw const NetworkRequestException('fixture-disconnected');
+      }
       throw StateError(writeFailure!.name);
     }
     return <String, dynamic>{'errorCode': 0, 'data': null};
@@ -177,6 +191,49 @@ void main() {
           (result as DataSuccess<PageResult<Article>>).value;
       expect(page.items.single.collected, isTrue);
       expect(page.items.single.collectionSession, isNotNull);
+    },
+  );
+
+  test(
+    'a stale article page cannot overwrite a confirmed collect write',
+    () async {
+      final _FakeCollectionSource source = _FakeCollectionSource();
+      final DefaultCollectionRepository repository = await _signedIn(source);
+      final int generation = repository.current.generation!;
+      const CollectionTarget target = CollectionTarget(42, null);
+      await repository.articlePage(
+        () async => DataSuccess<PageResult<Article>>(
+          PageResult<Article>(
+            items: <Article>[_collectedArticle(42, false)],
+            nextPage: null,
+          ),
+        ),
+      );
+
+      final Completer<DataResult<PageResult<Article>>> delayedPage =
+          Completer<DataResult<PageResult<Article>>>();
+      final Future<DataResult<PageResult<Article>>> pendingPage = repository
+          .articlePage(() => delayedPage.future);
+      final DataResult<void> write = await repository.setCollected(
+        generation,
+        target,
+        true,
+      );
+      expect(write, isA<DataSuccess<void>>());
+      delayedPage.complete(
+        DataSuccess<PageResult<Article>>(
+          PageResult<Article>(
+            items: <Article>[_collectedArticle(42, false)],
+            nextPage: null,
+          ),
+        ),
+      );
+      final PageResult<Article> page =
+          (await pendingPage as DataSuccess<PageResult<Article>>).value;
+
+      expect(page.items.single.collected, isTrue);
+      expect(repository.current.status(target).collected, isTrue);
+      expect(source.writeCalls, <String>['collect:42']);
     },
   );
 
@@ -283,6 +340,32 @@ void main() {
     expect(source.writeCalls, isNotEmpty);
     expect(repository.current.status(target).collected, isTrue);
   });
+
+  test(
+    'lost response after a committed uncollect reconciles without retry',
+    () async {
+      final _FakeCollectionSource source = _FakeCollectionSource();
+      final DefaultCollectionRepository repository = await _signedIn(source);
+      final int generation = repository.current.generation!;
+      source.pages.add(<Map<String, Object?>>[_record(77, 42)]);
+      const CollectionTarget target = CollectionTarget(42, 77);
+      await repository.page(generation, 0);
+      expect(repository.current.status(target).collected, isTrue);
+
+      source
+        ..commitUncollectRecordBeforeFailure = true
+        ..writeFailure = DataError.network;
+      final DataResult<void> result = await repository.setCollected(
+        generation,
+        target,
+        false,
+      );
+
+      expect(result, isA<DataSuccess<void>>());
+      expect(repository.current.status(target).collected, isFalse);
+      expect(source.writeCalls, <String>['uncollectRecord:77/42']);
+    },
+  );
 
   test('a stale generation is rejected as session-changed', () async {
     final _FakeCollectionSource source = _FakeCollectionSource();
