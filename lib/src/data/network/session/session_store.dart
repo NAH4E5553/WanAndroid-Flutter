@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:wanandroid_flutter/src/core/cancellation/request_cancellation.dart';
 import 'package:wanandroid_flutter/src/data/network/session/session_models.dart';
 import 'package:wanandroid_flutter/src/data/network/session/web_cookie.dart';
 import 'package:wanandroid_flutter/src/data/storage/session_storage.dart';
@@ -134,7 +135,12 @@ class SessionStore extends ChangeNotifier {
         .join('; ');
   }
 
-  Future<bool> commitLogin(SessionRequest request, User user) async {
+  Future<bool> commitLogin(
+    SessionRequest request,
+    User user, {
+    RequestCancellation cancellation = const LiveRequestCancellation(),
+  }) async {
+    cancellation.throwIfCancelled();
     if (!isCurrent(request)) {
       return false;
     }
@@ -144,7 +150,12 @@ class SessionStore extends ChangeNotifier {
       await _clearLocked(SessionNotice.none);
       return false;
     }
-    return _persistAuthenticated(request, user, received);
+    return _persistAuthenticated(
+      request,
+      user,
+      received,
+      cancellation: cancellation,
+    );
   }
 
   /// Attaches a verified identity to a restored session; a different account
@@ -239,8 +250,9 @@ class SessionStore extends ChangeNotifier {
   Future<bool> _persistAuthenticated(
     SessionRequest request,
     User user,
-    List<WebCookie> received,
-  ) async {
+    List<WebCookie> received, {
+    RequestCancellation cancellation = const LiveRequestCancellation(),
+  }) async {
     final Map<(String, String, String), WebCookie> next =
         <(String, String, String), WebCookie>{};
     for (final WebCookie cookie in received) {
@@ -262,6 +274,12 @@ class SessionStore extends ChangeNotifier {
       await _persist(user, cookies);
     } on Object {
       throw const SessionStorageException();
+    }
+    if (cancellation.isCancelled) {
+      // A route can leave while the secure-storage write is in flight. Never
+      // publish the just-persisted identity, even transiently, in that case.
+      await _clearLocked(SessionNotice.none);
+      throw const RequestCancelledException();
     }
     _cookies = cookies;
     _snapshot = SessionSnapshot(

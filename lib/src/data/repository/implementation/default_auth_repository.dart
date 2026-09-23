@@ -118,8 +118,11 @@ final class DefaultAuthRepository implements AuthRepository {
         nickname: envelope.nickname,
       );
       cancellation.throwIfCancelled();
-      final bool committed = await _sessions.commitLogin(request, user);
-      cancellation.throwIfCancelled();
+      final bool committed = await _sessions.commitLogin(
+        request,
+        user,
+        cancellation: cancellation,
+      );
       if (committed) {
         return const DataSuccess<void>(null);
       }

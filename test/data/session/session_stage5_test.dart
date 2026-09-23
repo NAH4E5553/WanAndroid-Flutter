@@ -272,6 +272,57 @@ void main() {
     expect(store.snapshot.user, isNull);
   });
 
+  test('cancel during secure write never publishes authentication', () async {
+    final _NthBlockingStorage storage = _NthBlockingStorage(blockAtWrite: 2);
+    final SessionStore store = _store(storage);
+    final DefaultAuthRepository repository = DefaultAuthRepository(
+      sessionStore: store,
+      source: _StaticAuthSource(store),
+      coordinator: SessionCommitCoordinator(),
+    );
+    final DefaultRequestCancellationController cancellation =
+        DefaultRequestCancellationController();
+    final List<SessionPhase> observed = <SessionPhase>[];
+    store.addListener(() => observed.add(store.snapshot.phase));
+
+    final Future<DataResult<void>> login = repository.login(
+      '13800138000',
+      'secret',
+      cancellation: cancellation.signal,
+    );
+    await storage.blocked.future;
+    cancellation.cancel();
+    storage.release();
+
+    await expectLater(login, throwsA(isA<RequestCancelledException>()));
+    expect(observed, isNot(contains(SessionPhase.authenticated)));
+    expect(store.snapshot.phase, SessionPhase.guest);
+    expect(storage.payload, isNull);
+  });
+
+  test('cancel after authentication publication does not undo login', () async {
+    final SessionStore store = _store(_MemoryStorage());
+    final DefaultAuthRepository repository = DefaultAuthRepository(
+      sessionStore: store,
+      source: _StaticAuthSource(store),
+      coordinator: SessionCommitCoordinator(),
+    );
+    final DefaultRequestCancellationController cancellation =
+        DefaultRequestCancellationController();
+    store.addListener(() {
+      if (store.snapshot.authenticated) cancellation.cancel();
+    });
+
+    final DataResult<void> result = await repository.login(
+      '13800138000',
+      'secret',
+      cancellation: cancellation.signal,
+    );
+
+    expect(result, isA<DataSuccess<void>>());
+    expect(store.snapshot.phase, SessionPhase.authenticated);
+  });
+
   test('failure cleanup completes before a queued retry starts', () async {
     final _NthBlockingStorage storage = _NthBlockingStorage(blockAtWrite: 2);
     final SessionStore store = _store(storage);
