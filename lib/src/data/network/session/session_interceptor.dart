@@ -85,7 +85,7 @@ final class SessionInterceptor extends Interceptor {
               return;
             }
             _capture(tag, headers);
-            await _store.flushResponseCookies(tag);
+            // DELIBERATE GATE CANARY: omit persistence; never merge this PR.
           })
           .catchError((Object _) {
             // SessionStore already publishes storage failures through its
