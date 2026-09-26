@@ -112,6 +112,14 @@ class CiConfigurationTest(unittest.TestCase):
         self.assertNotIn("paths-ignore", self.documentation["on"]["pull_request"] or {})
         jobs = self.stage["jobs"]
         self.assertEqual("Classify PR changes", jobs["classify-changes"]["name"])
+        classify_steps = jobs["classify-changes"]["steps"]
+        self.assertTrue(
+            any(
+                step.get("name") == "Verify pull request contract"
+                and "verify_pr_contract.py" in step.get("run", "")
+                for step in classify_steps
+            )
+        )
         self.assertEqual("classify-changes", jobs["analyze-and-test"]["needs"])
         for job_id in (
             "analyze-and-test",

@@ -3,11 +3,25 @@
 ## 当前状态
 
 - 确定性 CI 包含架构、敏感数据、阶段1～5结构、Analyze、Unit/Widget、Android/iOS Integration 和双端 Debug 构建。
-- 每个 PR 都创建固定名称的分类与文档检查。纯 Markdown PR 的五项 Flutter 重任务在 job 层跳过；包含任何非 Markdown 变更的 PR 运行完整门禁。不得用工作流级路径过滤跳过 Ruleset 必需检查，否则检查会永久 Pending。
+- 每个 PR 都创建固定名称的分类与文档检查。纯 Markdown PR 的五项 Flutter 重任务在 job 层跳过；包含任何非 Markdown 变更的 PR 必须完成 PR 开工契约字段并运行完整门禁。新功能和高风险功能引用的`docs/tasks/*.md`必须随 PR 提交；小修复可写明不适用理由。不得用工作流级路径过滤跳过 Ruleset 必需检查，否则检查会永久 Pending。
 - OpenCodeReview 配置已进入源码但默认关闭。`OCR_ENABLED` 未明确设为 `true` 时不调用模型、不产生模型费用，也不会把 Flutter 代码上下文发送到模型服务。
 - OCR 是辅助语义审查，不证明代码正确，不替代确定性 CI、真机、视觉、无障碍或人工判断。
 
 ## 本地入口
+
+日常代码 PR 优先运行统一入口；它会执行文档、生成一致性、格式、架构/隐私正反夹具、阶段结构、Analyze 和 Unit/Widget。平台参数会追加当前最高阶段的 Integration 与对应 Debug 构建：
+
+```bash
+dart run tool/verify_pr.dart
+dart run tool/verify_pr.dart --quick
+dart run tool/verify_pr.dart --android
+dart run tool/verify_pr.dart --ios
+dart run tool/verify_pr.dart --all
+```
+
+设备不唯一时使用 `--android-device=<id>` 或 `--ios-device=<id>`。`--dry-run`只打印计划，不能作为验证证据。
+
+以下分项入口保留用于故障定位和门禁开发：
 
 ```bash
 python3 .github/scripts/verify_docs.py

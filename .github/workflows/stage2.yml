@@ -40,6 +40,13 @@ jobs:
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
               output.write(f"code={str(code).lower()}\n")
           PY
+      - name: Verify pull request contract
+        env:
+          CODE_CHANGED: ${{ steps.classify.outputs.code }}
+        run: >-
+          python3 .github/scripts/verify_pr_contract.py
+          --event "$GITHUB_EVENT_PATH"
+          --code "$CODE_CHANGED"
 
   analyze-and-test:
     name: Analyze and Test
