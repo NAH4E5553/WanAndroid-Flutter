@@ -336,58 +336,71 @@ const Map<WanPalette, _PalettePair> _palettes = <WanPalette, _PalettePair>{
   ),
 };
 
-/// Three representative swatches for a palette, ordered dark -> mid -> light
-/// (primary, secondary, primaryContainer of the light scheme), used by the
-/// theme settings cards.
+/// Three representative swatches for the active brightness of a palette.
 class PaletteSwatchColors {
   const PaletteSwatchColors({
-    required this.dark,
-    required this.mid,
-    required this.light,
+    required this.primary,
+    required this.secondary,
+    required this.container,
   });
 
-  final Color dark;
-  final Color mid;
-  final Color light;
+  final Color primary;
+  final Color secondary;
+  final Color container;
 }
 
-PaletteSwatchColors paletteSwatchColors(WanPalette palette) {
-  final _Accent light = _palettes[palette]!.light;
+PaletteSwatchColors paletteSwatchColors(
+  WanPalette palette, {
+  required Brightness brightness,
+}) {
+  final _PalettePair pair = _palettes[palette]!;
+  final _Accent accent = brightness == Brightness.dark ? pair.dark : pair.light;
   return PaletteSwatchColors(
-    dark: light.primary,
-    mid: light.secondary,
-    light: light.primaryContainer,
+    primary: accent.primary,
+    secondary: accent.secondary,
+    container: accent.primaryContainer,
   );
 }
-
-/// The accent color the segmented display-mode control fills for the
-/// currently selected palette (light scheme container tone).
-Color paletteSelectionColor(WanPalette palette) =>
-    _palettes[palette]!.light.primaryContainer;
 
 ColorScheme _colorScheme(WanPalette palette, {required bool dark}) {
   final _PalettePair pair = _palettes[palette]!;
   final _Accent accent = dark ? pair.dark : pair.light;
+  final _Accent lightAccent = pair.light;
+  final _Accent darkAccent = pair.dark;
   return ColorScheme(
     brightness: dark ? Brightness.dark : Brightness.light,
     primary: accent.primary,
     onPrimary: accent.onPrimary,
     primaryContainer: accent.primaryContainer,
     onPrimaryContainer: accent.onPrimaryContainer,
+    primaryFixed: lightAccent.primaryContainer,
+    primaryFixedDim: darkAccent.primary,
+    onPrimaryFixed: lightAccent.onPrimaryContainer,
+    onPrimaryFixedVariant: darkAccent.primaryContainer,
     secondary: accent.secondary,
     onSecondary: accent.onSecondary,
     secondaryContainer: accent.secondaryContainer,
     onSecondaryContainer: accent.onSecondaryContainer,
+    secondaryFixed: lightAccent.secondaryContainer,
+    secondaryFixedDim: darkAccent.secondary,
+    onSecondaryFixed: lightAccent.onSecondaryContainer,
+    onSecondaryFixedVariant: darkAccent.secondaryContainer,
     tertiary: accent.tertiary,
     onTertiary: accent.onTertiary,
     tertiaryContainer: accent.tertiaryContainer,
     onTertiaryContainer: accent.onTertiaryContainer,
+    tertiaryFixed: lightAccent.tertiaryContainer,
+    tertiaryFixedDim: darkAccent.tertiary,
+    onTertiaryFixed: lightAccent.onTertiaryContainer,
+    onTertiaryFixedVariant: darkAccent.tertiaryContainer,
     error: dark ? const Color(0xFFFFB4AB) : const Color(0xFFBA1A1A),
     onError: dark ? const Color(0xFF690005) : Colors.white,
     errorContainer: dark ? const Color(0xFF93000A) : const Color(0xFFFFDAD6),
     onErrorContainer: dark ? const Color(0xFFFFDAD6) : const Color(0xFF410002),
     surface: dark ? const Color(0xFF111417) : const Color(0xFFF7F9FC),
     onSurface: dark ? const Color(0xFFE1E2E6) : const Color(0xFF191C1F),
+    surfaceDim: dark ? const Color(0xFF111417) : const Color(0xFFD8DADF),
+    surfaceBright: dark ? const Color(0xFF37393D) : const Color(0xFFF7F9FC),
     surfaceContainerLowest: dark ? const Color(0xFF0C0F12) : Colors.white,
     surfaceContainerLow: dark
         ? const Color(0xFF191C20)
@@ -402,5 +415,15 @@ ColorScheme _colorScheme(WanPalette palette, {required bool dark}) {
     onSurfaceVariant: dark ? const Color(0xFFC2C7CD) : const Color(0xFF42474D),
     outline: dark ? const Color(0xFF8C9197) : const Color(0xFF72777D),
     outlineVariant: dark ? const Color(0xFF42474D) : const Color(0xFFC2C7CD),
+    shadow: Colors.black,
+    scrim: Colors.black,
+    inverseSurface: dark ? const Color(0xFFE1E2E6) : const Color(0xFF2E3135),
+    onInverseSurface: dark ? const Color(0xFF2E3135) : const Color(0xFFEFF1F5),
+    inversePrimary: dark ? lightAccent.primary : darkAccent.primary,
+    surfaceTint: accent.primary,
+    // Compose still exposes surfaceVariant. Flutter maps new components to
+    // container roles, but keeping this exact value preserves legacy defaults.
+    // ignore: deprecated_member_use
+    surfaceVariant: dark ? const Color(0xFF42474D) : const Color(0xFFDEE3E8),
   );
 }

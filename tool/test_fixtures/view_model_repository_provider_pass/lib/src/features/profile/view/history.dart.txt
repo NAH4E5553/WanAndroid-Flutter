@@ -1,0 +1,3 @@
+import '../view_model/history_view_model.dart';
+
+Object build() => historyViewModelProvider;

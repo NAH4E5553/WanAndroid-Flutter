@@ -13,6 +13,17 @@ void main() {
     expect(dark.colorScheme.primary, const Color(0xFF9CCAFA));
     expect(dark.colorScheme.surface, const Color(0xFF111417));
     expect(dark.colorScheme.surfaceContainerLow, const Color(0xFF191C20));
+    expect(light.colorScheme.inversePrimary, const Color(0xFF9CCAFA));
+    expect(light.colorScheme.inverseSurface, const Color(0xFF2E3135));
+    expect(light.colorScheme.onInverseSurface, const Color(0xFFEFF1F5));
+    expect(light.colorScheme.surfaceDim, const Color(0xFFD8DADF));
+    expect(dark.colorScheme.inversePrimary, const Color(0xFF315F84));
+    expect(dark.colorScheme.surfaceBright, const Color(0xFF37393D));
+    expect(dark.colorScheme.onInverseSurface, const Color(0xFF2E3135));
+    expect(light.colorScheme.primaryFixed, const Color(0xFFCEE5FF));
+    expect(light.colorScheme.primaryFixedDim, const Color(0xFF9CCAFA));
+    expect(dark.colorScheme.primaryFixed, const Color(0xFFCEE5FF));
+    expect(dark.colorScheme.primaryFixedDim, const Color(0xFF9CCAFA));
   });
 
   test('all four palettes expose distinct exact primary roles', () {
@@ -39,5 +50,23 @@ void main() {
     expect(theme.textTheme.titleMedium?.fontSize, 16);
     expect(theme.extension<WanSpacing>()?.page, 16);
     expect(theme.extension<WanShapes>()?.medium, 12);
+  });
+
+  test('palette swatches follow the active brightness', () {
+    final PaletteSwatchColors light = paletteSwatchColors(
+      WanPalette.slateBlue,
+      brightness: Brightness.light,
+    );
+    final PaletteSwatchColors dark = paletteSwatchColors(
+      WanPalette.slateBlue,
+      brightness: Brightness.dark,
+    );
+
+    expect(light.primary, const Color(0xFF315F84));
+    expect(light.secondary, const Color(0xFF50606F));
+    expect(light.container, const Color(0xFFCEE5FF));
+    expect(dark.primary, const Color(0xFF9CCAFA));
+    expect(dark.secondary, const Color(0xFFB7C9D9));
+    expect(dark.container, const Color(0xFF164766));
   });
 }

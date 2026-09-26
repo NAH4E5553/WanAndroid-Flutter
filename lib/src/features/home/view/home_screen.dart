@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanandroid_flutter/src/core/paging/paging_state.dart';
-import 'package:wanandroid_flutter/src/core/platform/app_visibility.dart';
 import 'package:wanandroid_flutter/src/core/theme/wan_theme.dart';
 import 'package:wanandroid_flutter/src/core/ui/article_card.dart';
 import 'package:wanandroid_flutter/src/core/ui/search_icon.dart';
@@ -27,11 +26,6 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final HomeUiState state = ref.watch(homeViewModelProvider);
-    final bool homeVisible = ref.watch(
-      appVisibilityProvider.select(
-        (AppVisibilityState visibility) => visibility.homeVisible,
-      ),
-    );
     final HomeViewModel viewModel = ref.read(homeViewModelProvider.notifier);
     final PagedState<Article> articles = state.articles;
     if (articles.items.isEmpty && articles.isInitialLoading) {
@@ -60,7 +54,7 @@ class HomeScreen extends ConsumerWidget {
                 onArticleTap: onArticleTap,
                 onViewAll: onViewAllQuestions,
                 onRetry: viewModel.retryQuestions,
-                visible: homeVisible,
+                visible: state.visible,
               ),
             ),
             SliverToBoxAdapter(

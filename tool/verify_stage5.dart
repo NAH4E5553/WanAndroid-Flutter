@@ -25,6 +25,10 @@ void main() {
     'lib/src/features/profile/view/profile_screen.dart',
     'lib/src/features/profile/view/theme_settings_screen.dart',
     'lib/src/features/profile/view/collections_screen.dart',
+    'lib/src/features/profile/view_model/profile_view_model.dart',
+    'lib/src/features/profile/view_model/theme_settings_view_model.dart',
+    'lib/src/features/profile/view_model/collections_view_model.dart',
+    'lib/src/features/reader/view_model/reader_collection_view_model.dart',
     'lib/src/core/ui/swipe_reveal_action_item.dart',
     'test/data/session/session_stage5_test.dart',
     'test/data/session/session_interceptor_stage5_test.dart',
@@ -32,6 +36,11 @@ void main() {
     'test/data/repository/collection_repository_stage5_test.dart',
     'test/features/auth/login_screen_test.dart',
     'test/features/auth/login_view_model_test.dart',
+    'test/features/profile/profile_view_model_test.dart',
+    'test/features/profile/collections_view_model_test.dart',
+    'test/features/reader/reader_collection_view_model_test.dart',
+    'test/core/theme/theme_controller_test.dart',
+    'test/data/storage/theme_preferences_test.dart',
     'test/features/profile/theme_settings_stage5_test.dart',
     'integration_test/stage5_ci_test.dart',
   ]) {
@@ -52,6 +61,10 @@ void main() {
       '_toggleCollect',
     ),
     (
+      'lib/src/app/bootstrap/bootstrap.dart',
+      'readerCollectionViewModelProvider.overrideWithValue',
+    ),
+    (
       'lib/src/app/bootstrap/app_dependencies.dart',
       'DefaultArticleNetworkDataSource(\n    service,\n    sessionStore,',
     ),
@@ -70,6 +83,31 @@ void main() {
     (
       'test/features/auth/login_view_model_test.dart',
       'UI-07 leaving cancels login and ignores a late success',
+    ),
+    ('lib/src/data/storage/theme_preferences.dart', 'theme.selection.v1'),
+    (
+      'lib/src/features/profile/view/theme_settings_screen.dart',
+      '无法读取已保存主题，当前使用默认设置',
+    ),
+    (
+      'lib/src/features/profile/view/profile_screen.dart',
+      'profileViewModelProvider',
+    ),
+    (
+      'lib/src/features/profile/view/collections_screen.dart',
+      'collectionsViewModelProvider',
+    ),
+    (
+      'lib/src/features/profile/view/theme_settings_screen.dart',
+      'themeSettingsViewModelProvider',
+    ),
+    (
+      'test/core/theme/theme_controller_test.dart',
+      'rapid selections serialize writes and persist the latest',
+    ),
+    (
+      'test/data/storage/theme_preferences_test.dart',
+      'all theme selections round-trip through stable storage values',
     ),
     (
       'integration_test/stage5_ci_test.dart',

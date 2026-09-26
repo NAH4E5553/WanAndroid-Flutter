@@ -61,11 +61,112 @@ void main() {
     );
   });
 
+  test('view cannot access a repository through a provider', () async {
+    final ArchitectureReport report = await _verifyFixture(
+      'view_repository_provider_violation',
+    );
+    expect(
+      report.violations.any(
+        (ArchitectureViolation item) =>
+            item.rule == 'VIEW_REPOSITORY_ACCESS' && item.indirect,
+      ),
+      isTrue,
+    );
+  });
+
   test('view model may depend on a repository contract', () async {
     final ArchitectureReport report = await _verifyFixture(
       'view_model_repository_contract_pass',
     );
     expect(report.violations, isEmpty);
+  });
+
+  test('view may delegate repository access to a view model', () async {
+    final ArchitectureReport report = await _verifyFixture(
+      'view_model_repository_provider_pass',
+    );
+    expect(report.violations, isEmpty);
+  });
+
+  test('view cannot depend back on feature navigation', () async {
+    final ArchitectureReport report = await _verifyFixture(
+      'view_navigation_violation',
+    );
+    expect(
+      report.violations.any(
+        (ArchitectureViolation item) => item.rule == 'VIEW_NAVIGATION',
+      ),
+      isTrue,
+    );
+  });
+
+  test('feature navigation cannot depend on data', () async {
+    final ArchitectureReport report = await _verifyFixture(
+      'feature_navigation_data_violation',
+    );
+    expect(
+      report.violations.any(
+        (ArchitectureViolation item) => item.rule == 'FEATURE_NAVIGATION_DATA',
+      ),
+      isTrue,
+    );
+  });
+
+  test('router cannot own repository access', () async {
+    final ArchitectureReport report = await _verifyFixture(
+      'router_data_violation',
+    );
+    expect(
+      report.violations.any(
+        (ArchitectureViolation item) => item.rule == 'ROUTER_DATA',
+      ),
+      isTrue,
+    );
+  });
+
+  test('router may depend on feature navigation', () async {
+    final ArchitectureReport report = await _verifyFixture(
+      'router_feature_navigation_pass',
+    );
+    expect(report.violations, isEmpty);
+  });
+
+  test('repository contract cannot depend on Flutter', () async {
+    final ArchitectureReport report = await _verifyFixture(
+      'repository_contract_framework_violation',
+    );
+    expect(
+      report.violations.any(
+        (ArchitectureViolation item) =>
+            item.rule == 'REPOSITORY_CONTRACT_FRAMEWORK',
+      ),
+      isTrue,
+    );
+  });
+
+  test('model cannot depend on Flutter', () async {
+    final ArchitectureReport report = await _verifyFixture(
+      'model_framework_violation',
+    );
+    expect(
+      report.violations.any(
+        (ArchitectureViolation item) =>
+            item.rule == 'MODEL_FRAMEWORK_DEPENDENCY',
+      ),
+      isTrue,
+    );
+  });
+
+  test('feature layers cannot import data implementation plugins', () async {
+    final ArchitectureReport report = await _verifyFixture(
+      'feature_data_plugin_violation',
+    );
+    expect(
+      report.violations.any(
+        (ArchitectureViolation item) => item.rule == 'FEATURE_DATA_PLUGIN',
+      ),
+      isTrue,
+    );
   });
 }
 

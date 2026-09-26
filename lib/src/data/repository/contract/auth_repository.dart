@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:wanandroid_flutter/src/core/cancellation/request_cancellation.dart';
 import 'package:wanandroid_flutter/src/core/result/data_result.dart';
 
@@ -34,7 +33,11 @@ class AuthStateView {
   final String? displayName;
 }
 
-abstract interface class AuthRepository extends Listenable {
+abstract interface class AuthRepository {
+  void addListener(void Function() listener);
+
+  void removeListener(void Function() listener);
+
   /// Current UI-facing session view.
   AuthStateView view();
 

@@ -6,8 +6,9 @@ import 'package:wanandroid_flutter/src/core/theme/wan_theme.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/auth_repository.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/collection_repository.dart';
 
-/// Contract-level providers importable by features without touching
-/// implementations. Defaults throw; the production bootstrap overrides them.
+/// Contract-level providers for the app layer and Feature ViewModels.
+/// Feature Views must depend on their ViewModel providers instead. Defaults
+/// throw; the production bootstrap overrides them.
 
 final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => throw StateError('Auth repository is not configured'),

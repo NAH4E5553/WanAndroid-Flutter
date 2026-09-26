@@ -10,11 +10,15 @@ void main() {
     'lib/src/data/repository/contract/reading_history_repository.dart',
     'lib/src/data/repository/implementation/default_reading_history_repository.dart',
     'lib/src/features/reader/view/article_reader_screen.dart',
+    'lib/src/features/reader/view_model/reader_history_view_model.dart',
     'lib/src/features/profile/view/reading_history_screen.dart',
+    'lib/src/features/profile/view_model/reading_history_view_model.dart',
     'test/core/reader/reader_url_policy_test.dart',
     'test/core/reader/reader_failure_classifier_test.dart',
     'test/data/repository/reading_history_repository_test.dart',
     'test/features/profile/reading_history_screen_test.dart',
+    'test/features/profile/reading_history_view_model_test.dart',
+    'test/features/reader/reader_history_view_model_test.dart',
     'integration_test/reader_history_test.dart',
     'integration_test/stage4_ci_test.dart',
     'android/app/src/debug/res/xml/reader_test_network_security_config.xml',
@@ -66,8 +70,16 @@ void main() {
       'SwipeRevealActionItem(',
     ),
     (
+      'lib/src/features/profile/view/reading_history_screen.dart',
+      'readingHistoryViewModelProvider',
+    ),
+    (
       'lib/src/features/reader/view/article_reader_screen.dart',
       'WebViewWidget(',
+    ),
+    (
+      'lib/src/features/reader/view/article_reader_screen.dart',
+      'readerHistoryViewModelProvider',
     ),
 
     (

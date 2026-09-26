@@ -1,0 +1,5 @@
+import '../../../core/history_provider.dart';
+
+final historyViewModelProvider = Object();
+
+Future<void> load(dynamic ref) => ref.read(historyRepositoryProvider).load();

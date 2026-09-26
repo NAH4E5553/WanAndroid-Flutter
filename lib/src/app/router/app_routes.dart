@@ -1,22 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:wanandroid_flutter/src/app/bootstrap/app_dependencies.dart';
 import 'package:wanandroid_flutter/src/app/router/app_shell.dart';
 import 'package:wanandroid_flutter/src/app/router/branch_restoration_controller.dart';
-import 'package:wanandroid_flutter/src/core/providers.dart';
-import 'package:wanandroid_flutter/src/data/network/session/session_models.dart';
-import 'package:wanandroid_flutter/src/data/network/session/session_store.dart';
-import 'package:wanandroid_flutter/src/data/repository/contract/collection_repository.dart';
 import 'package:wanandroid_flutter/src/features/auth/navigation/auth_navigation.dart';
 import 'package:wanandroid_flutter/src/features/home/navigation/home_navigation.dart';
 import 'package:wanandroid_flutter/src/features/profile/navigation/profile_navigation.dart';
 import 'package:wanandroid_flutter/src/features/reader/navigation/reader_navigation.dart';
 import 'package:wanandroid_flutter/src/features/topics/navigation/topics_navigation.dart';
 import 'package:wanandroid_flutter/src/model/article.dart';
-import 'package:wanandroid_flutter/src/model/collection.dart';
 
 part 'app_routes.g.dart';
 
@@ -197,23 +190,16 @@ class HomePreviewRouteData extends GoRouteData with $HomePreviewRouteData {
     return MaterialPage<void>(
       key: state.pageKey,
       restorationId: routeInstanceId,
-      child: Consumer(
-        builder: (BuildContext context, WidgetRef ref, _) =>
-            buildArticleReaderScreen(
-              articleId: articleId,
-              title: title,
-              url: url,
-              onExit: () {
-                recordPop();
-                context.pop();
-              },
-              onPopped: recordPop,
-              collectState: () => _collectState(ref, articleId),
-              onToggleCollect: (CollectionCollectIntent intent) =>
-                  _toggleCollect(ref, intent),
-              onLogin: () =>
-                  unawaited(const LoginRouteData().push<void>(context)),
-            ),
+      child: buildArticleReaderScreen(
+        articleId: articleId,
+        title: title,
+        url: url,
+        onExit: () {
+          recordPop();
+          context.pop();
+        },
+        onPopped: recordPop,
+        onLogin: () => unawaited(const LoginRouteData().push<void>(context)),
       ),
     );
   }
@@ -263,23 +249,16 @@ class TopicsPreviewRouteData extends GoRouteData with $TopicsPreviewRouteData {
     return MaterialPage<void>(
       key: state.pageKey,
       restorationId: routeInstanceId,
-      child: Consumer(
-        builder: (BuildContext context, WidgetRef ref, _) =>
-            buildArticleReaderScreen(
-              articleId: articleId,
-              title: title,
-              url: url,
-              onExit: () {
-                recordPop();
-                context.pop();
-              },
-              onPopped: recordPop,
-              collectState: () => _collectState(ref, articleId),
-              onToggleCollect: (CollectionCollectIntent intent) =>
-                  _toggleCollect(ref, intent),
-              onLogin: () =>
-                  unawaited(const LoginRouteData().push<void>(context)),
-            ),
+      child: buildArticleReaderScreen(
+        articleId: articleId,
+        title: title,
+        url: url,
+        onExit: () {
+          recordPop();
+          context.pop();
+        },
+        onPopped: recordPop,
+        onLogin: () => unawaited(const LoginRouteData().push<void>(context)),
       ),
     );
   }
@@ -374,23 +353,16 @@ class CollectionsReaderRouteData extends GoRouteData
     return MaterialPage<void>(
       key: state.pageKey,
       restorationId: routeInstanceId,
-      child: Consumer(
-        builder: (BuildContext context, WidgetRef ref, _) =>
-            buildArticleReaderScreen(
-              articleId: articleId,
-              title: title,
-              url: url,
-              onExit: () {
-                recordPop();
-                context.pop();
-              },
-              onPopped: recordPop,
-              collectState: () => _collectState(ref, articleId),
-              onToggleCollect: (CollectionCollectIntent intent) =>
-                  _toggleCollect(ref, intent),
-              onLogin: () =>
-                  unawaited(const LoginRouteData().push<void>(context)),
-            ),
+      child: buildArticleReaderScreen(
+        articleId: articleId,
+        title: title,
+        url: url,
+        onExit: () {
+          recordPop();
+          context.pop();
+        },
+        onPopped: recordPop,
+        onLogin: () => unawaited(const LoginRouteData().push<void>(context)),
       ),
     );
   }
@@ -474,63 +446,19 @@ class HistoryReaderRouteData extends GoRouteData with $HistoryReaderRouteData {
     return MaterialPage<void>(
       key: state.pageKey,
       restorationId: routeInstanceId,
-      child: Consumer(
-        builder: (BuildContext context, WidgetRef ref, _) =>
-            buildArticleReaderScreen(
-              articleId: articleId,
-              title: title,
-              url: url,
-              onExit: () {
-                recordPop();
-                context.pop();
-              },
-              onPopped: recordPop,
-              collectState: () => _collectState(ref, articleId),
-              onToggleCollect: (CollectionCollectIntent intent) =>
-                  _toggleCollect(ref, intent),
-              onLogin: () =>
-                  unawaited(const LoginRouteData().push<void>(context)),
-            ),
+      child: buildArticleReaderScreen(
+        articleId: articleId,
+        title: title,
+        url: url,
+        onExit: () {
+          recordPop();
+          context.pop();
+        },
+        onPopped: recordPop,
+        onLogin: () => unawaited(const LoginRouteData().push<void>(context)),
       ),
     );
   }
-}
-
-CollectMenuState? _collectState(WidgetRef ref, int? articleId) {
-  final SessionStore store = ref.read(sessionStoreProvider);
-  final CollectionRepository repository = ref.read(
-    collectionRepositoryProvider,
-  );
-  final SessionSnapshot snapshot = store.snapshot;
-  if (!snapshot.authenticated || articleId == null) {
-    return CollectMenuState();
-  }
-  final CollectionStatus status = repository.current.status(
-    CollectionTarget(articleId, null),
-  );
-  return CollectMenuState(
-    authenticated: true,
-    collected: status.collected,
-    busy: status.busy,
-    generation: snapshot.generation,
-  );
-}
-
-void _toggleCollect(WidgetRef ref, CollectionCollectIntent intent) {
-  final CollectionRepository repository = ref.read(
-    collectionRepositoryProvider,
-  );
-  final int? articleId = intent.articleId;
-  if (articleId == null) {
-    return;
-  }
-  unawaited(
-    repository.setCollected(
-      intent.generation,
-      CollectionTarget(articleId, null),
-      !(intent.collected ?? false),
-    ),
-  );
 }
 
 void _pushArticle(BuildContext context, Article article) {

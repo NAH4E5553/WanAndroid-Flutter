@@ -4,7 +4,7 @@
 > 架构依据：`Flutter版本实施方案.md`。  
 > Android 行为基线：`/Users/sn/Desktop/workplace/WanAndroid-AI`，提交 `78cdaade84ef24ebbe825041b499cbe1cd7ee286`。  
 > 当前状态：以 `docs/阶段状态与决策记录.md` 为唯一权威入口。  
-> 最后更新：2026-09-22（阶段5主体已合并；登录/会话审查修正及可执行质量门禁正在本地验证，当前状态以状态记录为准）。
+> 最后更新：2026-09-26（阶段5主体与登录/质量门禁已合并；主题审核及扩大架构边界修正位于本地工作树，Android真机与本地动态门禁通过，最终iOS集成和远端CI待补，当前状态以状态记录为准）。
 
 阶段0工作入口：[行为对照矩阵](docs/阶段0行为对照矩阵.md)、[关键原型报告](docs/阶段0关键原型报告.md)、[依赖清单](docs/阶段0依赖锁定清单.md)。用户已于2026-09-18完整接受报告15.3推荐值，阶段0已冻结；冻结的是后续实施基线，不代表生产网络、WebView、登录、收藏、视觉验收、真实进程恢复或发布检查已经实现。UI工作另须读取[UI基线与还原规范](/Users/sn/Desktop/workplace/WanAndroid-AI/docs/local/Flutter-UI基线与还原规范.md)，其UI编号统一纳入上述矩阵。 2026-09-21 用户授权进入阶段5，登录/收藏/主题/我的已实现并通过本地全量门禁与双端模拟器集成（详见状态记录2.5）；真实账号验收留待阶段6。
 
@@ -152,10 +152,12 @@ Repository 必须拆分可被上层依赖的 `contract/` 与只供装配和数�
 
 - 同时解析相对 URI、`package:` URI、`import`、`export` 和 `part`，规范化为仓库内真实路径后判断边界。
 - 追踪 barrel `export` 的可达目标，禁止通过转发文件间接越层。
+- 识别返回Repository契约的Provider声明，禁止Feature View绕过导入边界直接读取该Provider；View只能读取同Feature的ViewModel Provider。
 - 至少包含“直接越层”“相对路径越层”“通过 export 间接越层”三个失败夹具，以及组合根合法绑定的通过夹具。
 - 提交到源码树的 `.g.dart`、`.freezed.dart` 等生成文件继承其源文件边界并参与检查；`.dart_tool/`、`build/` 等未提交缓存排除。生成代码造成越层时修正声明或生成配置，不能整类豁免。
 - Dart 私有标识只提供 library 级隔离，目录名本身不是访问控制；检查器必须靠解析后的依赖图执行业务边界。
 - 例外必须精确到规则、来源和目标文件，说明原因并有到期/删除条件，不能整目录放行。
+- 已到期例外必须先迁移实际调用方并补正反夹具，再删除豁免；不得把历史债务长期写成常规架构。
 
 参考：[Dart libraries 与可见性](https://dart.dev/language/libraries)。
 
@@ -465,7 +467,7 @@ flutter test integration_test -d <ios-simulator-id>
 - Simulator 不能替代 iOS 真机/发布检查。
 - 环境阻塞、未执行和失败必须与通过项分开报告。
 
-架构与隐私门禁必须同时验证门禁本体和正反夹具，不能只证明当前代码恰好通过。Feature View 不得直接读取组合根 Provider 或依赖 Data 层；ViewModel 可以依赖 Repository 契约。既有债务只能使用文件与目标都精确匹配的临时清单，并记录删除条件，不能用目录级或规则级豁免。
+架构与隐私门禁必须同时验证门禁本体和正反夹具，不能只证明当前代码恰好通过。Feature View 不得直接读取组合根 Provider、依赖 Data 层或反向依赖 Navigation；Feature Navigation 与 `app/router` 不得承载 Repository/Data 业务；ViewModel 可以依赖 Repository 契约，但 Feature 各层不得直接引入 Dio、Drift、安全存储或 Preferences 等数据实现插件。Repository 契约和 Model 不依赖 Flutter 框架。既有债务只能使用文件与目标都精确匹配的临时清单并记录删除条件，不能用目录级或规则级豁免；当前临时清单已清零。
 
 独立 AI 审查属于补充证据，不替代上述确定性门禁。其 Workflow 必须从 PR base commit 读取审查器和规则，锁定依赖源码身份与哈希，使用最小权限，不持久化原始模型输出，并默认关闭。只有用户明确同意代码发送给外部模型、成本与凭据边界，完成一次无敏感内容的 canary，并在仓库 Ruleset 中把稳定检查设为 Required 后，才可称为独立必过门禁。首次引入审查 Workflow 的 PR 无法审查自身变更，必须从后续 PR 开始提供独立证据。
 
