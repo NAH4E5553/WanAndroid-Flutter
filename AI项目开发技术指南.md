@@ -10,7 +10,7 @@
 
 阶段1已完成并经PR #1与远端`main` CI验证。阶段2生产只读网络、取消、分页、首页、每日一问、搜索、搜索历史和可见性策略已实现，确定性测试、双端Integration、Debug构建及PR #2远端CI通过并合并。用户于2026-09-19授权进入阶段3，专题交付已在PR #6经四项远端CI通过并合并；用户随后授权进入阶段4，阅读器与阅读历史已获本地双端受控验证，PR #8最终四项远端CI通过并squash合并。合并后新增退出/延迟加载回归在MI 9真机与iPhone 18 Pro Simulator各9/9通过；MI 9实际左边缘系统返回专项1/1通过。2026-09-21新增专项：Android系统返回取消/提交在API35模拟器与MI 9真机各1/1、iOS模拟器边缘返回2/2、dispose后渲染进程双端4秒内退出（进程级释放证据）；并实证`webview_flutter_android`未重写`onRenderProcessGone`，Android渲染进程死亡会杀死整个App；用户已确认方案A落地：`third_party/webview_flutter_android`内嵌4.14.1副本（path override）重写该回调保活App并上报`webContentProcessTerminated`，MI 9真机合并入口9/9与dispose释放1/1补测通过（kill场景仅模拟器），API 24/25无此回调仍为默认行为。预测动画视觉、iOS真机人工手势、iOS渲染终止触发和逐页视觉等专项未关闭，阶段4整体仍实施中。此前用户报告的笼统真机验收缺设备/场景记录，不替代后续逐项证据；登录、收藏写入、逐页视觉、真实进程恢复和发布检查继续按后续阶段执行。
 
-完整CI只在包含非Markdown变更的Pull Request运行；纯Markdown PR不启动Flutter/双端构建，合并到`main`不重复执行同一套完整门禁。同一PR的新提交取消旧运行。代码生成与生成物一致性只在Analyze任务执行一次；Android Integration使用一个测试入口在同一次应用启动中注册当前阶段全部设备流程，并缓存Gradle User Home与固定API/架构的AVD快照。PR #4远端四任务及单入口2/2已通过并保存首次AVD快照；该快照属于`refs/pull/4/merge`作用域，不能推断不同PR会命中，同PR重跑或可访问的默认分支缓存才可能复用。缓存、合并入口或跳过重复运行只优化执行方式，不减少Analyze、Unit/Widget、Android Integration、Android Debug和iOS Simulator Debug五类验证职责；阶段6发布检查仍独立执行。
+完整CI只在产品、平台、依赖或生成输入发生变化的Pull Request运行；纯Markdown PR不启动代码任务，仅修改开发规约、`.github/`、`docs/`、验证脚本及其测试的基础设施PR运行契约检查、CI脚本测试、Analyze与Unit/Widget，但跳过Android/iOS Integration和双端Debug构建。合并到`main`不重复执行同一套完整门禁。同一PR的新提交取消旧运行。代码生成与生成物一致性只在Analyze任务执行一次；Android Integration使用一个测试入口在同一次应用启动中注册当前阶段全部设备流程，并缓存Gradle User Home与固定API/架构的AVD快照。PR #4远端四任务及单入口2/2已通过并保存首次AVD快照；该快照属于`refs/pull/4/merge`作用域，不能推断不同PR会命中，同PR重跑或可访问的默认分支缓存才可能复用。分类跳过只适用于没有产品或平台影响的变更，不能据此宣称双端验证通过；阶段6发布检查仍独立执行。
 
 ## 1. 使用方式与指令优先级
 

@@ -8,6 +8,8 @@ void main() {
     'docs/开发任务模板.md',
     '.github/PULL_REQUEST_TEMPLATE.md',
     '.github/scripts/verify_pr_contract.py',
+    '.github/scripts/classify_pr_changes.py',
+    '.github/tests/test_change_classification.py',
     '.github/tests/test_pr_contract.py',
     'pubspec.yaml',
     'pubspec.lock',

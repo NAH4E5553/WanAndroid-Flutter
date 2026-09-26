@@ -3,7 +3,7 @@
 ## 当前状态
 
 - 确定性 CI 包含架构、敏感数据、阶段1～5结构、Analyze、Unit/Widget、Android/iOS Integration 和双端 Debug 构建。
-- 每个 PR 都创建固定名称的分类与文档检查。纯 Markdown PR 的五项 Flutter 重任务在 job 层跳过；包含任何非 Markdown 变更的 PR 必须完成 PR 开工契约字段并运行完整门禁。新功能和高风险功能引用的`docs/tasks/*.md`必须随 PR 提交；小修复可写明不适用理由。不得用工作流级路径过滤跳过 Ruleset 必需检查，否则检查会永久 Pending。
+- 每个 PR 都创建固定名称的分类与文档检查。纯 Markdown PR 跳过代码任务；仅修改`.github/`、`docs/`、规则文档、验证脚本及其测试的开发基础设施 PR 仍运行契约检查、CI 脚本测试、Analyze 与 Unit/Widget，但在 job 层跳过 Android/iOS Integration 和双端 Debug 构建；产品、平台、依赖或生成输入变化才运行完整双端门禁。新功能和高风险功能引用的`docs/tasks/*.md`必须随 PR 提交；小修复可写明不适用理由。不得用工作流级路径过滤跳过 Ruleset 必需检查，否则检查会永久 Pending。
 - OpenCodeReview 配置已进入源码但默认关闭。`OCR_ENABLED` 未明确设为 `true` 时不调用模型、不产生模型费用，也不会把 Flutter 代码上下文发送到模型服务。
 - OCR 是辅助语义审查，不证明代码正确，不替代确定性 CI、真机、视觉、无障碍或人工判断。
 
@@ -66,7 +66,7 @@ OCR 准备脚本只下载 Alibaba OpenCodeReview 固定提交的两个公开文�
 仓库保存可审计的目标配置 `.github/ruleset-main.json`。远端配置完成并经 API 回读前不得宣称已强制执行。目标规则为：
 
 - `main` 必须通过 PR，禁止直接推送、强推和删除；管理员不绕过。
-- 必需检查使用实际 job 名称：`Classify PR changes`、`Analyze and Test`（含架构/隐私、Analyze、Unit/Widget）、`Android Integration`、`Android APK`、`iOS Integration`、`iOS Simulator`、`Documentation Consistency`。分类任务必需，防止分类失败时依赖任务全部跳过仍可合并。
+- 必需检查使用实际 job 名称：`Classify PR changes`、`Analyze and Test`（含架构/隐私、Analyze、Unit/Widget）、`Android Integration`、`Android APK`、`iOS Integration`、`iOS Simulator`、`Documentation Consistency`。分类任务必需，防止分类失败时依赖任务全部跳过仍可合并；平台四项对纯文档或仅开发基础设施变更显示为 Skipped，不能据此宣称产品双端验证通过。
 - PR 必须同步最新 `main`，所有审查讨论解决后才能合并。
 - 当前未启用独立人工批准要求（批准数为 0），以免单人维护仓库被自审限制永久卡住；Ruleset 只保证确定性检查与 PR 流程。若要真正独立的语义审查，需要另行授权审查人或模型服务并设置相应门禁。
 - OCR 当前默认关闭，不能设为 Required 或宣称独立语义审查已运行。只有取得单独的外发/费用授权并完成3～5个真实PR的命中、误报、漏报、耗时和费用记录后，才考虑将高等级发现升级为阻断。

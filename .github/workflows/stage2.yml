@@ -19,27 +19,20 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       code: ${{ steps.classify.outputs.code }}
+      platform: ${{ steps.classify.outputs.platform }}
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Detect non-Markdown changes
+      - name: Classify changed paths
         id: classify
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: |
-          python3 - <<'PY'
-          import os
-          import subprocess
-
-          changed = subprocess.check_output(
-              ["git", "diff", "--name-only", "-z", os.environ["BASE_SHA"], "HEAD"]
-          ).split(b"\0")
-          code = any(path and not path.lower().endswith(b".md") for path in changed)
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
-              output.write(f"code={str(code).lower()}\n")
-          PY
+        run: >-
+          python3 .github/scripts/classify_pr_changes.py
+          --base "$BASE_SHA"
+          --output "$GITHUB_OUTPUT"
       - name: Verify pull request contract
         env:
           CODE_CHANGED: ${{ steps.classify.outputs.code }}
@@ -89,7 +82,7 @@ jobs:
   android-integration:
     name: Android Integration
     needs: classify-changes
-    if: needs.classify-changes.outputs.code == 'true'
+    if: needs.classify-changes.outputs.platform == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -140,7 +133,7 @@ jobs:
   android-shell:
     name: Android APK
     needs: classify-changes
-    if: needs.classify-changes.outputs.code == 'true'
+    if: needs.classify-changes.outputs.platform == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -159,7 +152,7 @@ jobs:
   ios-integration:
     name: iOS Integration
     needs: classify-changes
-    if: needs.classify-changes.outputs.code == 'true'
+    if: needs.classify-changes.outputs.platform == 'true'
     runs-on: macos-latest
     timeout-minutes: 25
     steps:
@@ -207,7 +200,7 @@ jobs:
   ios-shell:
     name: iOS Simulator
     needs: classify-changes
-    if: needs.classify-changes.outputs.code == 'true'
+    if: needs.classify-changes.outputs.platform == 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v6

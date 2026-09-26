@@ -68,6 +68,8 @@ Flutter 与 Android 的有意差异及确认依据：不适用。
 |---|---|---|---|
 | 纯 Markdown PR | 跳过代码契约检查 | Python Unit | 不适用 |
 | 合法代码 PR | 契约检查通过 | Python Unit/CI 配置测试 | PR 检查 |
+| 仅开发基础设施变更 | 运行 Analyze/Unit，跳过双端集成与构建 | Python Unit/CI 配置测试 | PR 检查 |
+| 产品、平台、依赖或生成输入变更 | 运行完整双端门禁 | Python Unit/CI 配置测试 | PR 检查 |
 | 字段缺失或保留占位符 | 契约检查失败并指出字段 | Python Unit | PR 检查 |
 | 新功能/高风险功能未引用开工单 | 契约检查失败 | Python Unit | PR 检查 |
 | 引用不存在或越界的开工单 | 契约检查失败 | Python Unit | PR 检查 |

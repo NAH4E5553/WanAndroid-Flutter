@@ -121,8 +121,11 @@ class CiConfigurationTest(unittest.TestCase):
             )
         )
         self.assertEqual("classify-changes", jobs["analyze-and-test"]["needs"])
+        self.assertEqual(
+            "needs.classify-changes.outputs.code == 'true'",
+            jobs["analyze-and-test"]["if"],
+        )
         for job_id in (
-            "analyze-and-test",
             "android-integration",
             "android-shell",
             "ios-integration",
@@ -130,7 +133,8 @@ class CiConfigurationTest(unittest.TestCase):
         ):
             self.assertEqual("classify-changes", jobs[job_id]["needs"])
             self.assertEqual(
-                "needs.classify-changes.outputs.code == 'true'", jobs[job_id]["if"]
+                "needs.classify-changes.outputs.platform == 'true'",
+                jobs[job_id]["if"],
             )
         self.assertEqual(
             "Documentation Consistency",
