@@ -26,8 +26,44 @@ class CollectionsScreen extends ConsumerStatefulWidget {
   ConsumerState<CollectionsScreen> createState() => _CollectionsScreenState();
 }
 
-class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
+class _CollectionsScreenState extends ConsumerState<CollectionsScreen>
+    with WidgetsBindingObserver {
   final Set<String> _revealedKeys = <String>{};
+  bool _routeWasCurrent = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final bool routeIsCurrent = ModalRoute.of(context)?.isCurrent ?? true;
+    if (_routeWasCurrent != routeIsCurrent) {
+      _revealedKeys.clear();
+    }
+    _routeWasCurrent = routeIsCurrent;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) {
+      _closeRevealed();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  void _closeRevealed() {
+    if (!mounted || _revealedKeys.isEmpty) return;
+    setState(_revealedKeys.clear);
+  }
 
   Future<void> _remove(CollectionItem item) async {
     final bool removed = await ref
@@ -47,7 +83,13 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
     final ThemeData theme = Theme.of(context);
     final CollectionsUiState state = ref.watch(collectionsViewModelProvider);
     return AppScaffold(
-      topBar: AppTopBar(title: '我的收藏', onBack: widget.onBack),
+      topBar: AppTopBar(
+        title: '我的收藏',
+        onBack: () {
+          _revealedKeys.clear();
+          widget.onBack();
+        },
+      ),
       body: builder(context, theme, state),
     );
   }
@@ -144,11 +186,17 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
               padding: EdgeInsets.zero,
               onTap: state.busyKeys.contains(item.target.key)
                   ? () {}
-                  : () => widget.onArticleTap(
-                      item.article.url,
-                      item.article.title,
-                      item.target.articleId,
-                    ),
+                  : () {
+                      if (_revealedKeys.contains(item.target.key)) {
+                        setState(() => _revealedKeys.remove(item.target.key));
+                        return;
+                      }
+                      widget.onArticleTap(
+                        item.article.url,
+                        item.article.title,
+                        item.target.articleId,
+                      );
+                    },
             ),
           );
         },

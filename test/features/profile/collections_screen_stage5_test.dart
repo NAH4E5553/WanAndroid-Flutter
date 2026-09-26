@@ -87,6 +87,7 @@ void main() {
     testWidgets(
       'collection rows use home-style cards with category and time ($brightness)',
       (WidgetTester tester) async {
+        int articleTaps = 0;
         final ThemeController theme = ThemeController(
           preferences: _MemoryThemePreferences(),
         );
@@ -104,7 +105,9 @@ void main() {
               home: CollectionsScreen(
                 onBack: () {},
                 onLoginTap: () {},
-                onArticleTap: (String url, String title, int? articleId) {},
+                onArticleTap: (String url, String title, int? articleId) {
+                  articleTaps += 1;
+                },
               ),
             ),
           ),
@@ -115,6 +118,57 @@ void main() {
         expect(find.byType(ArticleCard), findsOneWidget);
         expect(find.textContaining('分类：'), findsOneWidget);
         expect(find.text('时间：2026-09-21'), findsOneWidget);
+        expect(find.byTooltip('取消收藏'), findsNothing);
+        expect(
+          tester.widget<AnimatedSlide>(find.byType(AnimatedSlide)).offset,
+          Offset.zero,
+        );
+        final Rect closedRowRect = tester.getRect(
+          find
+              .ancestor(
+                of: find.text('被收藏的文章标题'),
+                matching: find.byType(ClipRRect),
+              )
+              .first,
+        );
+        final Rect closedCardRect = tester.getRect(find.byType(ArticleCard));
+        expect(closedCardRect.left, closeTo(closedRowRect.left, 0.01));
+        expect(closedCardRect.right, closeTo(closedRowRect.right, 0.01));
+
+        await tester.drag(find.byType(ArticleCard), const Offset(-100, 0));
+        await tester.pumpAndSettle();
+        expect(find.byTooltip('取消收藏'), findsOneWidget);
+        expect(
+          tester.widget<AnimatedSlide>(find.byType(AnimatedSlide)).offset.dx,
+          lessThan(0),
+        );
+
+        // Tapping an already revealed row closes the action instead of
+        // navigating away and preserving the destructive state underneath.
+        await tester.tap(find.text('被收藏的文章标题'));
+        await tester.pumpAndSettle();
+        expect(find.byTooltip('取消收藏'), findsNothing);
+        expect(
+          tester.widget<AnimatedSlide>(find.byType(AnimatedSlide)).offset,
+          Offset.zero,
+        );
+        expect(articleTaps, 0);
+
+        await tester.tap(find.text('被收藏的文章标题'));
+        await tester.pump();
+        expect(articleTaps, 1);
+
+        await tester.drag(find.byType(ArticleCard), const Offset(-100, 0));
+        await tester.pumpAndSettle();
+        expect(find.byTooltip('取消收藏'), findsOneWidget);
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.inactive,
+        );
+        await tester.pumpAndSettle();
+        expect(find.byTooltip('取消收藏'), findsNothing);
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
 
         // The card surface paints the same role the history rows use.
         final BuildContext context = tester.element(find.text('被收藏的文章标题'));

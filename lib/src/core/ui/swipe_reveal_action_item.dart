@@ -55,34 +55,50 @@ class _SwipeRevealActionItemState extends State<SwipeRevealActionItem> {
                       borderRadius: BorderRadius.circular(12),
                       child: ColoredBox(
                         color: colors.error,
-                        child: IconButton(
-                          tooltip: widget.actionTooltip,
-                          onPressed: widget.onAction,
-                          icon: Icon(widget.actionIcon, color: colors.onError),
+                        child: IgnorePointer(
+                          ignoring: !widget.revealed,
+                          child: ExcludeSemantics(
+                            excluding: !widget.revealed,
+                            child: IconButton(
+                              tooltip: widget.revealed
+                                  ? widget.actionTooltip
+                                  : null,
+                              onPressed: widget.onAction,
+                              icon: Icon(
+                                widget.actionIcon,
+                                color: colors.onError,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  AnimatedSlide(
-                    offset: Offset(
-                      widget.revealed ? -actionWidth / constraints.maxWidth : 0,
-                      0,
-                    ),
-                    duration: const Duration(milliseconds: 200),
-                    child: GestureDetector(
-                      onHorizontalDragStart: (_) => _dragDistance = 0,
-                      onHorizontalDragUpdate: (DragUpdateDetails details) =>
-                          _dragDistance += details.primaryDelta ?? 0,
-                      onHorizontalDragEnd: (DragEndDetails details) {
-                        if (_dragDistance < -30 ||
-                            (details.primaryVelocity ?? 0) < -100) {
-                          widget.onReveal();
-                        } else if (_dragDistance > 30 ||
-                            (details.primaryVelocity ?? 0) > 100) {
-                          widget.onClose();
-                        }
-                      },
-                      child: widget.child,
+                  SizedBox(
+                    width: constraints.maxWidth,
+                    child: AnimatedSlide(
+                      offset: Offset(
+                        widget.revealed
+                            ? -actionWidth / constraints.maxWidth
+                            : 0,
+                        0,
+                      ),
+                      duration: const Duration(milliseconds: 200),
+                      child: GestureDetector(
+                        onHorizontalDragStart: (_) => _dragDistance = 0,
+                        onHorizontalDragUpdate: (DragUpdateDetails details) =>
+                            _dragDistance += details.primaryDelta ?? 0,
+                        onHorizontalDragEnd: (DragEndDetails details) {
+                          if (_dragDistance < -30 ||
+                              (details.primaryVelocity ?? 0) < -100) {
+                            widget.onReveal();
+                          } else if (_dragDistance > 30 ||
+                              (details.primaryVelocity ?? 0) > 100) {
+                            widget.onClose();
+                          }
+                        },
+                        child: widget.child,
+                      ),
                     ),
                   ),
                 ],
