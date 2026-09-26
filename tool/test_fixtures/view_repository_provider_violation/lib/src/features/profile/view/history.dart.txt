@@ -1,0 +1,3 @@
+import '../../../core/history_provider.dart';
+
+Future<void> load(dynamic ref) => ref.read(historyRepositoryProvider).load();

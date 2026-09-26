@@ -54,7 +54,6 @@ void main() {
       ProviderScope(
         overrides: [
           themeControllerProvider.overrideWithValue(theme),
-          sessionStoreProvider.overrideWithValue(dependencies.sessionStore),
           authRepositoryProvider.overrideWithValue(auth),
           collectionRepositoryProvider.overrideWithValue(
             dependencies.collectionRepository,
@@ -131,7 +130,6 @@ void main() {
       ProviderScope(
         overrides: [
           themeControllerProvider.overrideWithValue(theme),
-          sessionStoreProvider.overrideWithValue(dependencies.sessionStore),
           authRepositoryProvider.overrideWithValue(auth),
           collectionRepositoryProvider.overrideWithValue(
             dependencies.collectionRepository,

@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:wanandroid_flutter/src/core/providers.dart';
 import 'package:wanandroid_flutter/src/core/theme/theme_controller.dart';
 import 'package:wanandroid_flutter/src/core/theme/wan_theme.dart';
 import 'package:wanandroid_flutter/src/core/ui/app_scaffold.dart';
 import 'package:wanandroid_flutter/src/core/ui/app_top_bar.dart';
+import 'package:wanandroid_flutter/src/features/profile/view_model/theme_settings_view_model.dart';
 
 /// 外观与主题：配色卡片网格 + 分段式显示模式，按 Android 基线截图还原。
 class ThemeSettingsScreen extends ConsumerWidget {
@@ -29,28 +29,30 @@ class ThemeSettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ThemeController controller = ref.watch(themeControllerProvider);
+    final ThemeSettingsUiState state = ref.watch(
+      themeSettingsViewModelProvider,
+    );
     return AppScaffold(
       topBar: AppTopBar(title: '外观与主题', onBack: onBack),
-      body: builder(context, controller),
+      body: builder(context, state),
     );
   }
 
-  Widget builder(BuildContext context, ThemeController controller) {
-    if (controller.loadStatus == ThemeLoadStatus.readFailed) {
-      return _ThemeBody(controller: controller, readFailedBanner: true);
+  Widget builder(BuildContext context, ThemeSettingsUiState state) {
+    if (state.loadStatus == ThemeLoadStatus.readFailed) {
+      return _ThemeBody(state: state, readFailedBanner: true);
     }
-    if (!controller.ready) {
+    if (!state.ready) {
       return const Center(child: CircularProgressIndicator());
     }
-    return _ThemeBody(controller: controller);
+    return _ThemeBody(state: state);
   }
 }
 
 class _ThemeBody extends ConsumerWidget {
-  const _ThemeBody({required this.controller, this.readFailedBanner = false});
+  const _ThemeBody({required this.state, this.readFailedBanner = false});
 
-  final ThemeController controller;
+  final ThemeSettingsUiState state;
   final bool readFailedBanner;
 
   @override
@@ -61,6 +63,16 @@ class _ThemeBody extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: <Widget>[
+        if (readFailedBanner)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              '无法读取已保存主题，当前使用默认设置',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          ),
         _sectionLabel(context, '配色风格'),
         for (final List<WanPalette> pair in <List<WanPalette>>[
           palettes.sublist(0, 2),
@@ -74,11 +86,9 @@ class _ThemeBody extends ConsumerWidget {
                   child: _PaletteCard(
                     palette: palette,
                     name: ThemeSettingsScreen.paletteNames[palette]!,
-                    selected: controller.palette == palette,
-                    enabled: !controller.saving,
-                    onSelected: () => unawaited(
-                      _apply(ref, context, palette, controller.mode),
-                    ),
+                    selected: state.palette == palette,
+                    onSelected: () =>
+                        unawaited(_apply(ref, context, palette, state.mode)),
                   ),
                 ),
             ],
@@ -86,12 +96,16 @@ class _ThemeBody extends ConsumerWidget {
         _sectionLabel(context, '显示模式'),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _ModeSegmentedControl(controller: controller),
+          child: _ModeSegmentedControl(
+            state: state,
+            onSelected: (ThemeMode mode) =>
+                unawaited(_apply(ref, context, state.palette, mode)),
+          ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
-            controller.saving ? '正在保存主题…' : '选择后即时生效',
+            state.saving ? '正在保存主题…' : '选择后即时生效',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -116,10 +130,10 @@ class _ThemeBody extends ConsumerWidget {
     WanPalette palette,
     ThemeMode mode,
   ) async {
-    final ThemeController controller = ref.read(themeControllerProvider);
-    final bool wasFailed = controller.saveFailed;
-    await controller.apply(palette, mode);
-    if (controller.saveFailed && !wasFailed && context.mounted) {
+    final ThemeApplyResult result = await ref
+        .read(themeSettingsViewModelProvider.notifier)
+        .apply(palette, mode);
+    if (result == ThemeApplyResult.failed && context.mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('主题保存失败，已恢复原设置')));
     }
@@ -131,33 +145,34 @@ class _PaletteCard extends StatelessWidget {
     required this.palette,
     required this.name,
     required this.selected,
-    required this.enabled,
     required this.onSelected,
   });
 
   final WanPalette palette;
   final String name;
   final bool selected;
-  final bool enabled;
   final VoidCallback onSelected;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final PaletteSwatchColors swatches = paletteSwatchColors(palette);
+    final PaletteSwatchColors swatches = paletteSwatchColors(
+      palette,
+      brightness: theme.brightness,
+    );
     final Color border = selected
-        ? swatches.dark
+        ? theme.colorScheme.primary
         : theme.colorScheme.outlineVariant;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: enabled ? onSelected : null,
+        onTap: selected ? null : onSelected,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
+            color: theme.colorScheme.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: border, width: selected ? 2 : 1),
           ),
@@ -173,11 +188,11 @@ class _PaletteCard extends StatelessWidget {
                   if (selected)
                     CircleAvatar(
                       radius: 12,
-                      backgroundColor: swatches.dark,
-                      child: const Icon(
+                      backgroundColor: theme.colorScheme.primary,
+                      child: Icon(
                         Icons.check,
                         size: 16,
-                        color: Colors.white,
+                        color: theme.colorScheme.onPrimary,
                       ),
                     ),
                 ],
@@ -186,9 +201,9 @@ class _PaletteCard extends StatelessWidget {
               Row(
                 children: <Widget>[
                   for (final Color color in <Color>[
-                    swatches.dark,
-                    swatches.mid,
-                    swatches.light,
+                    swatches.primary,
+                    swatches.secondary,
+                    swatches.container,
                   ])
                     Expanded(
                       child: Center(
@@ -218,18 +233,15 @@ class _PaletteCard extends StatelessWidget {
 }
 
 class _ModeSegmentedControl extends StatelessWidget {
-  const _ModeSegmentedControl({required this.controller});
+  const _ModeSegmentedControl({required this.state, required this.onSelected});
 
-  final ThemeController controller;
-
-  Future<void> _apply(BuildContext context, ThemeMode mode) async {
-    await controller.apply(controller.palette, mode);
-  }
+  final ThemeSettingsUiState state;
+  final ValueChanged<ThemeMode> onSelected;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final Color selection = paletteSelectionColor(controller.palette);
+    final Color selection = theme.colorScheme.primaryContainer;
     return Container(
       height: 56,
       decoration: BoxDecoration(
@@ -244,14 +256,12 @@ class _ModeSegmentedControl extends StatelessWidget {
                 padding: const EdgeInsets.all(6),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
-                  onTap: controller.mode == mode
-                      ? null
-                      : () => unawaited(_apply(context, mode)),
+                  onTap: state.mode == mode ? null : () => onSelected(mode),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: controller.mode == mode
+                      color: state.mode == mode
                           ? selection
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
@@ -259,9 +269,9 @@ class _ModeSegmentedControl extends StatelessWidget {
                     child: Text(
                       ThemeSettingsScreen.modeNames[mode]!,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: controller.mode == mode
+                        color: state.mode == mode
                             ? theme.colorScheme.onPrimaryContainer
-                            : theme.colorScheme.onSurface,
+                            : theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),

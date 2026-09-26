@@ -61,7 +61,7 @@ OCR 准备脚本只下载 Alibaba OpenCodeReview 固定提交的两个公开文�
 
 每条确定性门禁必须至少有一个合法通过夹具和一个违规失败夹具。质量基线合并后，另建不合并的验证 PR：
 
-1. `View → Repository/core/providers.dart` 应被架构门禁拒绝。
+1. `View → Repository/core/providers.dart`、`View → 中间Provider → Repository`、`View → Navigation`、`Feature Navigation/app router → Data/Repository`、`Feature → Dio/Drift/存储实现插件`及`Repository契约/Model → Flutter`均应被架构门禁拒绝；`View → ViewModel → Repository`和`app router → Feature Navigation`应通过。
 2. 未批准的有效手机号形状和数字 `loginUserName` Cookie 应被敏感数据门禁拒绝。
 3. 删除 `flushResponseCookies` 后 SESSION-01 行为测试应失败。
 

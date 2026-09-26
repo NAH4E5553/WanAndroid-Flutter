@@ -29,6 +29,28 @@ class _FailingThemePreferences implements ThemeStorage {
   }
 }
 
+class _ReadFailingThemePreferences implements ThemeStorage {
+  @override
+  Future<({WanPalette palette, ThemeMode mode})?> read() async {
+    throw StateError('unreadable preferences');
+  }
+
+  @override
+  Future<void> write(WanPalette palette, ThemeMode mode) async {}
+}
+
+class _SavedThemePreferences implements ThemeStorage {
+  _SavedThemePreferences(this.selection);
+
+  final ({WanPalette palette, ThemeMode mode}) selection;
+
+  @override
+  Future<({WanPalette palette, ThemeMode mode})?> read() async => selection;
+
+  @override
+  Future<void> write(WanPalette palette, ThemeMode mode) async {}
+}
+
 void main() {
   testWidgets('theme save failure rolls the selection back', (
     WidgetTester tester,
@@ -54,6 +76,107 @@ void main() {
     expect(controller.palette, WanPalette.slateBlue);
     expect(find.text('主题保存失败，已恢复原设置'), findsOneWidget);
   });
+
+  testWidgets('every failed save reports feedback, including mode changes', (
+    WidgetTester tester,
+  ) async {
+    final ThemeController controller = ThemeController(
+      preferences: _FailingThemePreferences(),
+    );
+    await controller.load();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [themeControllerProvider.overrideWithValue(controller)],
+        child: MaterialApp(
+          theme: wanTheme(brightness: Brightness.light),
+          home: ThemeSettingsScreen(onBack: () {}),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('莓果玫瑰'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.text('主题保存失败，已恢复原设置'), findsOneWidget);
+
+    ScaffoldMessenger.of(tester.element(find.byType(ThemeSettingsScreen)))
+        .clearSnackBars();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('深色'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.text('主题保存失败，已恢复原设置'), findsOneWidget);
+    expect(controller.mode, ThemeMode.system);
+  });
+
+  testWidgets(
+    'theme read failure uses defaults and shows the baseline warning',
+    (WidgetTester tester) async {
+      final ThemeController controller = ThemeController(
+        preferences: _ReadFailingThemePreferences(),
+      );
+      await controller.load();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [themeControllerProvider.overrideWithValue(controller)],
+          child: MaterialApp(
+            theme: wanTheme(brightness: Brightness.light),
+            home: ThemeSettingsScreen(onBack: () {}),
+          ),
+        ),
+      );
+
+      expect(controller.loadStatus, ThemeLoadStatus.readFailed);
+      expect(find.text('无法读取已保存主题，当前使用默认设置'), findsOneWidget);
+      expect(controller.palette, WanPalette.slateBlue);
+      expect(controller.mode, ThemeMode.system);
+    },
+  );
+
+  testWidgets(
+    'dark selected mode uses the active container color and contrast',
+    (WidgetTester tester) async {
+      final ThemeController controller = ThemeController(
+        preferences: _SavedThemePreferences((
+          palette: WanPalette.slateBlue,
+          mode: ThemeMode.dark,
+        )),
+      );
+      await controller.load();
+      final ThemeData darkTheme = wanTheme(
+        palette: WanPalette.slateBlue,
+        brightness: Brightness.dark,
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [themeControllerProvider.overrideWithValue(controller)],
+          child: MaterialApp(
+            theme: darkTheme,
+            home: ThemeSettingsScreen(onBack: () {}),
+          ),
+        ),
+      );
+
+      final Text selectedLabel = tester.widget<Text>(find.text('深色'));
+      final AnimatedContainer selectedSegment = tester
+          .widget<AnimatedContainer>(
+            find
+                .ancestor(
+                  of: find.text('深色'),
+                  matching: find.byType(AnimatedContainer),
+                )
+                .first,
+          );
+      final BoxDecoration decoration =
+          selectedSegment.decoration! as BoxDecoration;
+      expect(decoration.color, darkTheme.colorScheme.primaryContainer);
+      expect(
+        selectedLabel.style?.color,
+        darkTheme.colorScheme.onPrimaryContainer,
+      );
+      expect(decoration.color, isNot(selectedLabel.style?.color));
+    },
+  );
 
   testWidgets('theme page shows palette cards, swatches and mode segments', (
     WidgetTester tester,
@@ -83,6 +206,7 @@ void main() {
     await tester.tap(find.text('暖琥珀'));
     await tester.pumpAndSettle();
     expect(controller.palette, WanPalette.warmAmber);
+    expect(find.byIcon(Icons.check), findsOneWidget);
   });
 
   testWidgets('login rejects a malformed phone number before submitting', (

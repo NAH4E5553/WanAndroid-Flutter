@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:wanandroid_flutter/src/model/article.dart';
 
 /// Identity of a collectable target. Internal articles act on the origin id;
@@ -28,7 +27,6 @@ class CollectionItem {
 
 /// Server-known collect state; unknown (`collected == null`) requires
 /// reconciliation before any follow-up write per the contract.
-@immutable
 class CollectionStatus {
   const CollectionStatus({this.collected, this.busy = false});
 

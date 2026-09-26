@@ -1,0 +1,7 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../data/repository/contract/history_repository.dart';
+
+final historyRepositoryProvider = Provider<HistoryRepository>(
+  (ref) => throw StateError('fixture'),
+);

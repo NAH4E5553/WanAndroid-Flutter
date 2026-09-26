@@ -13,6 +13,7 @@ import 'package:wanandroid_flutter/src/data/repository/implementation/default_se
 import 'package:wanandroid_flutter/src/data/repository/implementation/default_topic_repository.dart';
 import 'package:wanandroid_flutter/src/data/storage/search_history_storage.dart';
 import 'package:wanandroid_flutter/src/features/home/view_model/home_dependencies.dart';
+import 'package:wanandroid_flutter/src/features/reader/view_model/reader_collection_view_model.dart';
 import 'package:wanandroid_flutter/src/features/topics/view_model/topics_dependencies.dart';
 
 void bootstrap() {
@@ -28,10 +29,12 @@ void bootstrap() {
       retry: (int retryCount, Object error) => null,
       overrides: [
         themeControllerProvider.overrideWithValue(dependencies.themeController),
-        sessionStoreProvider.overrideWithValue(dependencies.sessionStore),
         authRepositoryProvider.overrideWithValue(dependencies.authRepository),
         collectionRepositoryProvider.overrideWithValue(
           dependencies.collectionRepository,
+        ),
+        readerCollectionViewModelProvider.overrideWithValue(
+          ReaderCollectionViewModel(dependencies.collectionRepository),
         ),
         readingHistoryRepositoryProvider.overrideWithValue(
           DefaultReadingHistoryRepository(historyDatabase),

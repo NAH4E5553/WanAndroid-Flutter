@@ -23,6 +23,7 @@ class HomeViewModel extends Notifier<HomeUiState> {
 
   @override
   HomeUiState build() {
+    _visible = ref.read(appVisibilityProvider).homeVisible;
     ref.listen<AppVisibilityState>(appVisibilityProvider, (
       AppVisibilityState? previous,
       AppVisibilityState next,
@@ -49,7 +50,7 @@ class HomeViewModel extends Notifier<HomeUiState> {
     });
     unawaited(Future<void>.microtask(_articles.startInitialLoad));
     unawaited(Future<void>.microtask(_requestQuestions));
-    return const HomeUiState();
+    return HomeUiState(visible: _visible);
   }
 
   Future<void> refresh() async {
@@ -70,6 +71,7 @@ class HomeViewModel extends Notifier<HomeUiState> {
   void setVisible(bool visible) {
     if (_visible == visible) return;
     _visible = visible;
+    state = state.copyWith(visible: visible);
     if (visible) {
       unawaited(_articles.resumeLoading());
       if (state.questions.loading) unawaited(_requestQuestions());

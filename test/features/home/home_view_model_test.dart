@@ -80,6 +80,7 @@ void main() {
           .read(appVisibilityProvider.notifier)
           .updateLifecycle(AppLifecycleState.paused);
       await _flush();
+      expect(container.read(homeViewModelProvider).visible, isFalse);
       expect(repository.articleRequests.first.cancellation.isCancelled, isTrue);
       expect(
         repository.questionRequests.first.cancellation.isCancelled,
@@ -90,6 +91,7 @@ void main() {
           .read(appVisibilityProvider.notifier)
           .updateLifecycle(AppLifecycleState.resumed);
       await _flush();
+      expect(container.read(homeViewModelProvider).visible, isTrue);
       expect(repository.articleRequests.length, 2);
       expect(repository.questionRequests.length, 2);
       repository.articleRequests.last.complete(

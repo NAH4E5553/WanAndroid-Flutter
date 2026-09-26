@@ -5,10 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wanandroid_flutter/src/core/reader/reader_failure_classifier.dart';
 import 'package:wanandroid_flutter/src/core/reader/reader_url_policy.dart';
-import 'package:wanandroid_flutter/src/core/reader/reading_history_provider.dart';
 import 'package:wanandroid_flutter/src/core/ui/app_scaffold.dart';
 import 'package:wanandroid_flutter/src/core/ui/app_top_bar.dart';
-import 'package:wanandroid_flutter/src/features/reader/navigation/reader_navigation.dart';
+import 'package:wanandroid_flutter/src/features/reader/view_model/reader_collection_view_model.dart';
+import 'package:wanandroid_flutter/src/features/reader/view_model/reader_history_view_model.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class ArticleReaderScreen extends ConsumerStatefulWidget {
@@ -21,8 +21,6 @@ class ArticleReaderScreen extends ConsumerStatefulWidget {
     this.allowLoopbackFixture = false,
     this.loadTimeout = const Duration(seconds: 30),
     this.onControllerReady,
-    this.collectState,
-    this.onToggleCollect,
     this.onLogin,
     super.key,
   });
@@ -36,10 +34,6 @@ class ArticleReaderScreen extends ConsumerStatefulWidget {
   final Duration loadTimeout;
   final ValueChanged<WebViewController>? onControllerReady;
 
-  /// Session/collection wiring injected from the app layer; null in isolated
-  /// fixtures keeps the stage-4 placeholder behaviour.
-  final CollectMenuState? Function()? collectState;
-  final void Function(CollectionCollectIntent intent)? onToggleCollect;
   final VoidCallback? onLogin;
 
   @override
@@ -260,22 +254,18 @@ class _ArticleReaderScreenState extends ConsumerState<ArticleReaderScreen> {
 
   Future<void> _recordHistory(int id, Uri uri) async {
     if (!_current(id) || _failed) return;
-    try {
-      await ref
-          .read(readingHistoryRepositoryProvider)
-          .record(
-            url: uri.toString(),
-            title: widget.title,
-            articleId:
-                _target != null && ReaderUrlPolicy.samePage(uri, _target!)
-                ? widget.articleId
-                : null,
-          );
-    } on Object {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('阅读历史保存失败')));
-      }
+    final bool recorded = await ref
+        .read(readerHistoryViewModelProvider)
+        .record(
+          url: uri.toString(),
+          title: widget.title,
+          articleId: _target != null && ReaderUrlPolicy.samePage(uri, _target!)
+              ? widget.articleId
+              : null,
+        );
+    if (!recorded && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('阅读历史保存失败')));
     }
   }
 
@@ -310,22 +300,20 @@ class _ArticleReaderScreenState extends ConsumerState<ArticleReaderScreen> {
   }
 
   Future<void> _toggleCollect() async {
-    final CollectMenuState? state = widget.collectState?.call();
-    if (state == null || !state.authenticated || state.busy) {
-      return;
-    }
-    final int? generation = state.generation;
-    if (generation == null) {
-      return;
-    }
-    widget.onToggleCollect?.call(
-      CollectionCollectIntent(
-        articleId: widget.articleId,
-        collected: state.collected,
-        generation: generation,
-      ),
+    final ReaderCollectionViewModel? viewModel = ref.read(
+      readerCollectionViewModelProvider,
     );
+    if (viewModel == null) return;
+    final bool succeeded = await viewModel.toggle(widget.articleId);
+    if (!succeeded && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('收藏操作失败，请重试')));
+    }
   }
+
+  ReaderCollectUiState _collectState() =>
+      ref.read(readerCollectionViewModelProvider)?.state(widget.articleId) ??
+      const ReaderCollectUiState();
 
   Future<void> _confirmExternal(Uri uri) async {
     final bool? confirmed = await showDialog<bool>(
@@ -385,8 +373,8 @@ class _ArticleReaderScreenState extends ConsumerState<ArticleReaderScreen> {
               } else if (action == 'external' && _activeUrl != null) {
                 await _confirmExternal(_activeUrl!);
               } else if (action == 'collect' && mounted) {
-                final CollectMenuState? state = widget.collectState?.call();
-                if (state == null || !state.authenticated) {
+                final ReaderCollectUiState state = _collectState();
+                if (!state.authenticated) {
                   ScaffoldMessenger.of(context)
                       .showSnackBar(const SnackBar(content: Text('登录后才能收藏')));
                   widget.onLogin?.call();
@@ -396,9 +384,9 @@ class _ArticleReaderScreenState extends ConsumerState<ArticleReaderScreen> {
               }
             },
             itemBuilder: (_) {
-              final CollectMenuState? state = widget.collectState?.call();
-              final bool collectable = state != null && state.authenticated;
-              final String collectLabel = state?.collected ?? false
+              final ReaderCollectUiState state = _collectState();
+              final bool collectable = state.authenticated;
+              final String collectLabel = state.collected ?? false
                   ? '取消收藏'
                   : '收藏';
               return <PopupMenuItem<String>>[
@@ -412,7 +400,7 @@ class _ArticleReaderScreenState extends ConsumerState<ArticleReaderScreen> {
                 ),
                 PopupMenuItem<String>(
                   value: 'collect',
-                  enabled: !collectable || !(state.busy),
+                  enabled: !collectable || !state.busy,
                   child: Text(collectLabel),
                 ),
               ];

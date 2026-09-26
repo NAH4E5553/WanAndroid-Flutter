@@ -44,14 +44,34 @@ class ArchitectureVerifier {
             .toList()
           ..sort((File left, File right) => left.path.compareTo(right.path));
     final Map<String, List<_Directive>> graph = <String, List<_Directive>>{};
+    final Map<String, String> sources = <String, String>{};
     for (final File file in files) {
-      graph[_normalize(file.absolute.path)] = _parse(file);
+      final String path = _normalize(file.absolute.path);
+      final String source = file.readAsStringSync();
+      sources[path] = source;
+      graph[path] = _parse(source);
     }
+    final Map<String, String> repositoryProviders =
+        _repositoryProviderDeclarations(sources);
 
     final List<ArchitectureViolation> violations = <ArchitectureViolation>[];
     for (final File file in files) {
       final String source = _normalize(file.absolute.path);
       for (final _Directive directive in graph[source]!) {
+        final String? externalRule = _forbiddenExternalRule(
+          source,
+          directive.uri,
+        );
+        if (externalRule != null) {
+          violations.add(
+            ArchitectureViolation(
+              rule: externalRule,
+              source: _relative(source),
+              target: directive.uri,
+              indirect: false,
+            ),
+          );
+        }
         final String? target = _resolve(source, directive.uri);
         if (target == null || !_isWithin(sourceRoot, target)) {
           continue;
@@ -85,6 +105,23 @@ class ArchitectureVerifier {
           }
         }
       }
+      final String? repositoryAccessRule = _repositoryAccessRule(source);
+      if (repositoryAccessRule != null) {
+        final String contents = sources[source]!;
+        for (final MapEntry<String, String> provider
+            in repositoryProviders.entries) {
+          if (_referencesIdentifier(contents, provider.key)) {
+            violations.add(
+              ArchitectureViolation(
+                rule: repositoryAccessRule,
+                source: _relative(source),
+                target: _relative(provider.value),
+                indirect: true,
+              ),
+            );
+          }
+        }
+      }
     }
     final Map<String, ArchitectureViolation> unique =
         <String, ArchitectureViolation>{
@@ -97,16 +134,106 @@ class ArchitectureVerifier {
     );
   }
 
-  List<_Directive> _parse(File file) {
+  List<_Directive> _parse(String source) {
     final RegExp pattern = RegExp(
       r'''^\s*(import|export|part)\s+['"]([^'"]+)['"]''',
       multiLine: true,
     );
     return pattern
-        .allMatches(file.readAsStringSync())
+        .allMatches(source)
         .map((_DirectiveMatch match) => match.directive)
         .toList(growable: false);
   }
+
+  Map<String, String> _repositoryProviderDeclarations(
+    Map<String, String> sources,
+  ) {
+    final RegExp inferred = RegExp(
+      r'\b(?:final|const)\s+([A-Za-z_]\w*)\s*=\s*Provider(?:\.autoDispose)?\s*<\s*[A-Za-z_]\w*Repository\s*>',
+      multiLine: true,
+    );
+    final RegExp typed = RegExp(
+      r'\b(?:final|const)\s+Provider(?:\.autoDispose)?\s*<\s*[A-Za-z_]\w*Repository\s*>\s+([A-Za-z_]\w*)\s*=',
+      multiLine: true,
+    );
+    final RegExp named = RegExp(
+      r'\b(?:final|const)\s+(?:[A-Za-z_]\w*(?:\s*<[^;=]+>)?\s+)?([A-Za-z_]\w*RepositoryProvider)\b',
+      multiLine: true,
+      caseSensitive: false,
+    );
+    final Map<String, String> declarations = <String, String>{};
+    for (final MapEntry<String, String> entry in sources.entries) {
+      for (final RegExp pattern in <RegExp>[inferred, typed, named]) {
+        for (final RegExpMatch match in pattern.allMatches(entry.value)) {
+          declarations[match.group(1)!] = entry.key;
+        }
+      }
+    }
+    return declarations;
+  }
+
+  bool _isFeatureView(String source) {
+    final List<String> segments = _segments(_relative(source));
+    return segments.length > 2 &&
+        segments.first == 'features' &&
+        segments[2] == 'view';
+  }
+
+  String? _repositoryAccessRule(String source) {
+    final List<String> segments = _segments(_relative(source));
+    if (_isFeatureView(source)) return 'VIEW_REPOSITORY_ACCESS';
+    if (segments.length > 2 &&
+        segments.first == 'features' &&
+        segments[2] == 'navigation') {
+      return 'FEATURE_NAVIGATION_REPOSITORY_ACCESS';
+    }
+    if (_startsWith(segments, <String>['app', 'router'])) {
+      return 'ROUTER_REPOSITORY_ACCESS';
+    }
+    return null;
+  }
+
+  String? _forbiddenExternalRule(String source, String uri) {
+    const Set<String> dataImplementationPackages = <String>{
+      'package:dio/',
+      'package:drift/',
+      'package:drift_flutter/',
+      'package:flutter_secure_storage/',
+      'package:shared_preferences/',
+      'package:sqlite3/',
+    };
+    final bool dataImplementationPackage = dataImplementationPackages.any(
+      uri.startsWith,
+    );
+    final List<String> from = _segments(_relative(source));
+    if (from.length > 2 &&
+        from.first == 'features' &&
+        <String>{
+          'view',
+          'view_model',
+          'component',
+          'state',
+          'policy',
+          'navigation',
+        }.contains(from[2]) &&
+        dataImplementationPackage) {
+      return 'FEATURE_DATA_PLUGIN';
+    }
+    if (!uri.startsWith('package:flutter/') &&
+        !uri.startsWith('package:flutter_')) {
+      return null;
+    }
+    if (_startsWith(from, <String>['data', 'repository', 'contract'])) {
+      return 'REPOSITORY_CONTRACT_FRAMEWORK';
+    }
+    if (from.isNotEmpty && from.first == 'model') {
+      return 'MODEL_FRAMEWORK_DEPENDENCY';
+    }
+    return null;
+  }
+
+  bool _referencesIdentifier(String source, String identifier) =>
+      RegExp('\\b${RegExp.escape(identifier)}\\b').hasMatch(source);
 
   String? _resolve(String source, String uri) {
     if (uri.startsWith('dart:')) {
@@ -167,15 +294,25 @@ class ArchitectureVerifier {
     if (from.first == 'features') {
       final String feature = from.length > 1 ? from[1] : '';
       final String area = from.length > 2 ? from[2] : '';
-      final String sourceRelative = _relative(source);
       final String targetRelative = _relative(target);
       if (to.first == 'features' && to.length > 1 && to[1] != feature) {
         return 'FEATURE_CROSS_IMPLEMENTATION';
       }
-      if (area == 'view' &&
-          targetRelative == 'core/providers.dart' &&
-          !_isTemporaryArchitectureDebt(sourceRelative, targetRelative)) {
+      if (area == 'view' && targetRelative == 'core/providers.dart') {
         return 'VIEW_PROVIDER_COMPOSITION';
+      }
+      if (area == 'view' &&
+          to.first == 'features' &&
+          to.length > 2 &&
+          to[1] == feature &&
+          to[2] == 'navigation') {
+        return 'VIEW_NAVIGATION';
+      }
+      if (area == 'navigation' && targetRelative == 'core/providers.dart') {
+        return 'FEATURE_NAVIGATION_PROVIDER_COMPOSITION';
+      }
+      if (area == 'navigation' && to.first == 'data') {
+        return 'FEATURE_NAVIGATION_DATA';
       }
       if (<String>{
             'view',
@@ -188,8 +325,7 @@ class ArchitectureVerifier {
         return 'FEATURE_DATA_IMPLEMENTATION';
       }
       if (<String>{'view', 'component', 'state', 'policy'}.contains(area) &&
-          to.first == 'data' &&
-          !_isTemporaryArchitectureDebt(sourceRelative, targetRelative)) {
+          to.first == 'data') {
         return 'FEATURE_PRESENTATION_DATA';
       }
       if (area == 'view_model' && to.first == 'core' && to[1] == 'ui') {
@@ -210,9 +346,18 @@ class ArchitectureVerifier {
     if (from.first == 'model' && to.first != 'model') {
       return 'MODEL_DEPENDENCY';
     }
-    if (_startsWith(from, <String>['app', 'router']) &&
-        to.first == 'features') {
-      if (to.length < 3 || to[2] != 'navigation') {
+    if (_startsWith(from, <String>['app', 'router'])) {
+      final String targetRelative = _relative(target);
+      if (to.first == 'data') {
+        return 'ROUTER_DATA';
+      }
+      if (targetRelative == 'core/providers.dart') {
+        return 'ROUTER_PROVIDER_COMPOSITION';
+      }
+      if (_startsWith(to, <String>['app', 'bootstrap'])) {
+        return 'ROUTER_BOOTSTRAP';
+      }
+      if (to.first == 'features' && (to.length < 3 || to[2] != 'navigation')) {
         return 'ROUTER_FEATURE_PRIVATE';
       }
     }
@@ -221,21 +366,6 @@ class ArchitectureVerifier {
       return 'REPOSITORY_CONTRACT_IMPLEMENTATION';
     }
     return null;
-  }
-
-  bool _isTemporaryArchitectureDebt(String source, String target) {
-    // These exact dependencies predate the stricter presentation whitelist.
-    // They remain visible instead of weakening the rule for an entire folder.
-    // Remove each entry when the corresponding profile screen is moved behind
-    // a ViewModel; no new source/target pair may be added as routine work.
-    const Set<String> allowed = <String>{
-      'features/profile/view/collections_screen.dart->core/providers.dart',
-      'features/profile/view/collections_screen.dart->data/repository/contract/collection_repository.dart',
-      'features/profile/view/profile_screen.dart->core/providers.dart',
-      'features/profile/view/profile_screen.dart->data/repository/contract/auth_repository.dart',
-      'features/profile/view/theme_settings_screen.dart->core/providers.dart',
-    };
-    return allowed.contains('$source->$target');
   }
 
   bool _startsWith(List<String> value, List<String> prefix) {

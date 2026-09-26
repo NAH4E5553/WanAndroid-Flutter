@@ -10,7 +10,16 @@ void main() {
     'composition_root_pass': null,
     'view_repository_contract_violation': 'FEATURE_PRESENTATION_DATA',
     'view_provider_composition_violation': 'VIEW_PROVIDER_COMPOSITION',
+    'view_repository_provider_violation': 'VIEW_REPOSITORY_ACCESS',
     'view_model_repository_contract_pass': null,
+    'view_model_repository_provider_pass': null,
+    'view_navigation_violation': 'VIEW_NAVIGATION',
+    'feature_navigation_data_violation': 'FEATURE_NAVIGATION_DATA',
+    'router_data_violation': 'ROUTER_DATA',
+    'router_feature_navigation_pass': null,
+    'repository_contract_framework_violation': 'REPOSITORY_CONTRACT_FRAMEWORK',
+    'model_framework_violation': 'MODEL_FRAMEWORK_DEPENDENCY',
+    'feature_data_plugin_violation': 'FEATURE_DATA_PLUGIN',
   };
   final List<String> failures = <String>[];
   for (final MapEntry<String, String?> entry in expectations.entries) {

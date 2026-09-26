@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:wanandroid_flutter/src/core/providers.dart';
-import 'package:wanandroid_flutter/src/core/result/data_result.dart';
-import 'package:wanandroid_flutter/src/core/theme/theme_controller.dart';
 import 'package:wanandroid_flutter/src/core/ui/app_scaffold.dart';
 import 'package:wanandroid_flutter/src/core/ui/app_top_bar.dart';
-import 'package:wanandroid_flutter/src/data/repository/contract/auth_repository.dart';
 import 'package:wanandroid_flutter/src/features/profile/view/theme_settings_screen.dart';
+import 'package:wanandroid_flutter/src/features/profile/view_model/profile_view_model.dart';
 
 /// 个人中心（UI-08）：账户区、我的内容、偏好设置；登录/退出与主题摘要。
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -28,27 +25,18 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  bool _loggingOut = false;
-  String? _logoutNotice;
-
   @override
   Widget build(BuildContext context) {
-    final AuthRepository repository = ref.watch(authRepositoryProvider);
-    return AnimatedBuilder(
-      animation: repository,
-      builder: (BuildContext context, _) {
-        final AuthStateView view = repository.view();
-        return AppScaffold(
-          topBar: AppTopBar(title: '个人中心', onBack: () {}),
-          body: _body(context, view),
-        );
-      },
+    final ProfileUiState state = ref.watch(profileViewModelProvider);
+    return AppScaffold(
+      topBar: AppTopBar(title: '个人中心', onBack: () {}),
+      body: _body(context, state),
     );
   }
 
-  Widget _body(BuildContext context, AuthStateView view) {
+  Widget _body(BuildContext context, ProfileUiState state) {
     final ThemeData theme = Theme.of(context);
-    final ThemeController themeController = ref.watch(themeControllerProvider);
+    final view = state.auth;
     return ListView(
       children: <Widget>[
         Padding(
@@ -80,7 +68,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               if (view.authenticated)
                 OutlinedButton(
-                  onPressed: _loggingOut ? null : () => _confirmLogout(context),
+                  onPressed: state.loggingOut
+                      ? null
+                      : () => _confirmLogout(context),
                   child: const Text('退出登录'),
                 )
               else
@@ -91,11 +81,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ],
           ),
         ),
-        if (_logoutNotice != null)
+        if (state.logoutNotice != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              _logoutNotice!,
+              state.logoutNotice!,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.error,
               ),
@@ -122,22 +112,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
         const Divider(height: 24),
         _sectionLabel(context, '偏好设置'),
-        AnimatedBuilder(
-          animation: themeController,
-          builder: (BuildContext context, Widget? _) {
-            final ThemeController controller = themeController;
-            final String modeName =
-                ThemeSettingsScreen.modeNames[controller.mode]!;
-            final String paletteName =
-                ThemeSettingsScreen.paletteNames[controller.palette]!;
-            return ListTile(
-              leading: const Icon(Icons.palette_outlined),
-              title: const Text('外观与主题'),
-              subtitle: Text('$paletteName · $modeName'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: widget.onThemeTap,
-            );
-          },
+        ListTile(
+          leading: const Icon(Icons.palette_outlined),
+          title: const Text('外观与主题'),
+          subtitle: Text(
+            '${ThemeSettingsScreen.paletteNames[state.palette]} · '
+            '${ThemeSettingsScreen.modeNames[state.mode]}',
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: widget.onThemeTap,
         ),
         const ListTile(
           leading: Icon(Icons.extension_outlined),
@@ -178,18 +161,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (confirmed != true || !mounted) {
       return;
     }
-    setState(() => _loggingOut = true);
-    final LogoutOutcome outcome = await ref
-        .read(authRepositoryProvider)
-        .logout();
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _loggingOut = false;
-      _logoutNotice = outcome.localDetached && outcome.remote is DataFailure
-          ? '本机已退出，服务器退出未确认。'
-          : null;
-    });
+    await ref.read(profileViewModelProvider.notifier).logout();
   }
 }

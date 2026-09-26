@@ -18,10 +18,12 @@ class HomeUiState {
   const HomeUiState({
     this.articles = const PagedState<Article>(initial: LoadLoading()),
     this.questions = const QuestionUiState(),
+    this.visible = true,
   });
 
   final PagedState<Article> articles;
   final QuestionUiState questions;
+  final bool visible;
 
   bool get isPullRefreshing =>
       articles.isRefreshing ||
@@ -30,8 +32,10 @@ class HomeUiState {
   HomeUiState copyWith({
     PagedState<Article>? articles,
     QuestionUiState? questions,
+    bool? visible,
   }) => HomeUiState(
     articles: articles ?? this.articles,
     questions: questions ?? this.questions,
+    visible: visible ?? this.visible,
   );
 }
