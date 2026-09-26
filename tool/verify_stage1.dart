@@ -4,6 +4,13 @@ import 'dart:io';
 void main() {
   final Directory root = Directory.current;
   final List<String> required = <String>[
+    'AGENTS.md',
+    'docs/开发任务模板.md',
+    '.github/PULL_REQUEST_TEMPLATE.md',
+    '.github/scripts/verify_pr_contract.py',
+    '.github/scripts/classify_pr_changes.py',
+    '.github/tests/test_change_classification.py',
+    '.github/tests/test_pr_contract.py',
     'pubspec.yaml',
     'pubspec.lock',
     'android/app/src/main/AndroidManifest.xml',
@@ -20,6 +27,7 @@ void main() {
     'integration_test/navigation_restoration_test.dart',
     'tool/analyze_project.dart',
     'tool/generate_launcher_icons.dart',
+    'tool/verify_pr.dart',
     'tool/verify_architecture.dart',
     'tool/verify_architecture_fixtures.dart',
     'android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png',
