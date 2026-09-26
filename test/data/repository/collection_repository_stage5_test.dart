@@ -246,6 +246,10 @@ void main() {
       final int generation = repository.current.generation!;
       // Reading the list seeds the known state (collected = true).
       await repository.page(generation, 0);
+      expect(
+        repository.current.status(const CollectionTarget(42, null)).collected,
+        isTrue,
+      );
       final DataResult<void> result = await repository.setCollected(
         generation,
         CollectionTarget(42, 501),
@@ -255,6 +259,54 @@ void main() {
       expect(source.writeCalls.single, 'uncollectRecord:501/42');
       expect(
         repository.current.status(CollectionTarget(42, 501)).collected,
+        isFalse,
+      );
+      // The reader addresses the same item by article id only. It must see
+      // the list-side write immediately, without reloading the home page.
+      expect(
+        repository.current.status(const CollectionTarget(42, null)).collected,
+        isFalse,
+      );
+
+      // The server may briefly return the deleted record from a stale list
+      // response. Re-entering the list must not resurrect a newer confirmed
+      // uncollect in this process.
+      final DataResult<PageResult<CollectionItem>> reloaded = await repository
+          .page(generation, 0);
+      expect(
+        (reloaded as DataSuccess<PageResult<CollectionItem>>).value.items,
+        isEmpty,
+      );
+      expect(
+        repository.current.status(CollectionTarget(42, 501)).collected,
+        isFalse,
+      );
+    },
+  );
+
+  test(
+    'article-side uncollect invalidates every known collection record alias',
+    () async {
+      final _FakeCollectionSource source = _FakeCollectionSource();
+      final DefaultCollectionRepository repository = await _signedIn(source);
+      source.pages.add(<Map<String, Object?>>[_record(501, 42)]);
+      final int generation = repository.current.generation!;
+      await repository.page(generation, 0);
+
+      final DataResult<void> result = await repository.setCollected(
+        generation,
+        const CollectionTarget(42, null),
+        false,
+      );
+
+      expect(result, isA<DataSuccess<void>>());
+      expect(source.writeCalls, <String>['uncollectArticle:42']);
+      expect(
+        repository.current.status(const CollectionTarget(42, null)).collected,
+        isFalse,
+      );
+      expect(
+        repository.current.status(const CollectionTarget(42, 501)).collected,
         isFalse,
       );
     },

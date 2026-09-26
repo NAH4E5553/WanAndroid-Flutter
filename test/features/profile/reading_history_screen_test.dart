@@ -44,6 +44,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('第一篇'), findsOneWidget);
     expect(find.text('第二篇'), findsOneWidget);
+    expect(find.byTooltip('删除历史'), findsNothing);
     _expectMatchingRowHeight(tester, '第二篇', revealed: false);
     await tester.tap(find.text('第二篇'));
     expect(opened, 'https://example.test/second');
@@ -51,8 +52,8 @@ void main() {
     await tester.drag(find.text('第二篇'), const Offset(-180, 0));
     await tester.pumpAndSettle();
     _expectMatchingRowHeight(tester, '第二篇', revealed: true);
-    expect(find.byTooltip('删除历史'), findsNWidgets(2));
-    await tester.tap(find.byTooltip('删除历史').first);
+    expect(find.byTooltip('删除历史'), findsOneWidget);
+    await tester.tap(find.byTooltip('删除历史'));
     await tester.pumpAndSettle();
     expect(find.text('第二篇'), findsNothing);
     await tester.tap(find.byTooltip('清空历史'));

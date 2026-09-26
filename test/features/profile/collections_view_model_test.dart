@@ -33,15 +33,59 @@ void main() {
     expect(removed, isTrue);
     expect(subscription.read().items, isEmpty);
   });
+
+  test(
+    'repository invalidation removes an item without a list reload',
+    () async {
+      final _CollectionFixture repository = _CollectionFixture();
+      final ProviderContainer container = ProviderContainer(
+        overrides: [collectionRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+      final ProviderSubscription<CollectionsUiState> subscription = container
+          .listen(
+            collectionsViewModelProvider,
+            (_, _) {},
+            fireImmediately: true,
+          );
+      addTearDown(subscription.close);
+
+      await pumpEventQueue();
+      expect(subscription.read().items, hasLength(1));
+
+      repository.publishReaderUncollect();
+
+      expect(subscription.read().items, isEmpty);
+      expect(repository.pages, <int>[0]);
+    },
+  );
 }
 
 final class _CollectionFixture extends ChangeNotifier
     implements CollectionRepository {
   final List<int> pages = <int>[];
+  CollectionSnapshot _snapshot = const CollectionSnapshot(
+    generation: 1,
+    sessionKey: 'fixture:1',
+    statuses: <String, CollectionStatus>{
+      'article:7|record:null': CollectionStatus(collected: true),
+      'article:7|record:9': CollectionStatus(collected: true),
+    },
+  );
 
   @override
-  CollectionSnapshot get current =>
-      const CollectionSnapshot(generation: 1, sessionKey: 'fixture:1');
+  CollectionSnapshot get current => _snapshot;
+
+  void publishReaderUncollect() {
+    _snapshot = _snapshot.copyWith(
+      revision: _snapshot.revision + 1,
+      statuses: const <String, CollectionStatus>{
+        'article:7|record:null': CollectionStatus(collected: false),
+        'article:7|record:9': CollectionStatus(collected: false),
+      },
+    );
+    notifyListeners();
+  }
 
   @override
   Future<DataResult<PageResult<Article>>> articlePage(

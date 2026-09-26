@@ -170,7 +170,18 @@ class CollectionsViewModel extends Notifier<CollectionsUiState> {
       unawaited(refresh());
       return;
     }
-    state = state.copyWith(busyKeys: _busyKeys(snapshot));
+    state = state.copyWith(
+      // Repository notifications are the cross-page invalidation channel.
+      // A reader-side uncollect therefore removes the matching row without
+      // waiting for this screen to issue another list request.
+      items: List<CollectionItem>.unmodifiable(
+        state.items.where(
+          (CollectionItem item) =>
+              snapshot.status(item.target).collected != false,
+        ),
+      ),
+      busyKeys: _busyKeys(snapshot),
+    );
   }
 
   Set<String> _busyKeys(CollectionSnapshot snapshot) =>

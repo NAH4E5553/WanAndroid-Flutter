@@ -172,13 +172,13 @@ final class DioWanApiService implements WanApiService, WanSessionApiService {
     int recordId,
     int originId,
     Object? session,
-  ) => _post('lg/uncollect_originId/$recordId/json', session, originId);
+  ) => _post('lg/uncollect/$recordId/json', session, originId);
 
   @override
   Future<Map<String, dynamic>> uncollectArticleId(
     int articleId,
     Object? session,
-  ) => _post('lg/uncollect/$articleId/json', session);
+  ) => _post('lg/uncollect_originId/$articleId/json', session);
 
   Future<Map<String, dynamic>> _post(
     String path,

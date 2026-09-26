@@ -130,6 +130,34 @@ final class DefaultCollectionRepository implements CollectionRepository {
 
   DataFailure<T> _changed<T>() => DataFailure<T>(DataError.sessionChanged);
 
+  String? _canonicalKey(CollectionTarget target) {
+    final int? articleId = target.articleId;
+    return articleId == null ? null : CollectionTarget(articleId, null).key;
+  }
+
+  Set<String> _coordinatedKeys(
+    CollectionSnapshot snapshot,
+    CollectionTarget target,
+  ) {
+    final Set<String> keys = <String>{target.key};
+    final int? articleId = target.articleId;
+    if (articleId == null) return keys;
+    keys.add(CollectionTarget(articleId, null).key);
+    final String recordPrefix = 'article:$articleId|record:';
+    keys.addAll(
+      snapshot.statuses.keys.where(
+        (String key) => key.startsWith(recordPrefix),
+      ),
+    );
+    return keys;
+  }
+
+  bool _isBusy(CollectionSnapshot snapshot, CollectionTarget target) =>
+      _coordinatedKeys(
+        snapshot,
+        target,
+      ).any((String key) => snapshot.statuses[key]?.busy ?? false);
+
   void _publish(
     SessionRequest tag,
     CollectionTarget target,
@@ -140,8 +168,27 @@ final class DefaultCollectionRepository implements CollectionRepository {
     // Validate the exact snapshot being copied, never resample another
     // account afterwards.
     if (old.generation == tag.generation) {
+      final String? canonicalKey = _canonicalKey(target);
+      final Map<String, CollectionStatus> statuses = <String, CollectionStatus>{
+        ...old.statuses,
+      };
+      for (final String key in _coordinatedKeys(old, target)) {
+        final CollectionStatus existing =
+            old.statuses[key] ?? const CollectionStatus();
+        final bool direct = key == target.key || key == canonicalKey;
+        statuses[key] = CollectionStatus(
+          // A confirmed uncollect applies to every known record alias for the
+          // article. A collect only updates the requested/canonical identity:
+          // a later collect can receive a new record id and must not revive a
+          // tombstone for the old record.
+          collected: direct || status.collected == false
+              ? status.collected
+              : existing.collected,
+          busy: status.busy,
+        );
+      }
       _snapshot = old.copyWith(
-        statuses: {...old.statuses, target.key: status},
+        statuses: statuses,
         revision: old.revision + (changed ? 1 : 0),
       );
       _notify();
@@ -150,15 +197,18 @@ final class DefaultCollectionRepository implements CollectionRepository {
 
   bool _begin(SessionRequest tag, CollectionTarget target) {
     final CollectionSnapshot old = _snapshot;
-    if (old.generation != tag.generation || old.status(target).busy) {
+    if (old.generation != tag.generation || _isBusy(old, target)) {
       return false;
     }
-    _snapshot = old.copyWith(
-      statuses: {
-        ...old.statuses,
-        target.key: old.status(target).copyWith(busy: true),
-      },
-    );
+    final Map<String, CollectionStatus> statuses = <String, CollectionStatus>{
+      ...old.statuses,
+    };
+    for (final String key in _coordinatedKeys(old, target)) {
+      statuses[key] = (old.statuses[key] ?? const CollectionStatus()).copyWith(
+        busy: true,
+      );
+    }
+    _snapshot = old.copyWith(statuses: statuses);
     _notify();
     return true;
   }
@@ -185,14 +235,34 @@ final class DefaultCollectionRepository implements CollectionRepository {
       return _changed();
     }
     if (result is DataSuccess<PageResult<CollectionItem>>) {
+      // A successful uncollect is newer than a collection-list response that
+      // still contains the same server record. Keep that record hidden until
+      // the server list catches up. A later re-collect receives a new record
+      // id, so this tombstone cannot suppress the new collection.
+      final List<CollectionItem> visibleItems = result.value.items
+          .where(
+            (CollectionItem item) => old.status(item.target).collected != false,
+          )
+          .toList(growable: false);
       final Map<String, CollectionStatus> known = <String, CollectionStatus>{
-        for (final CollectionItem item in result.value.items.where(
-          (CollectionItem item) => !old.status(item.target).busy,
-        ))
-          item.target.key: const CollectionStatus(collected: true),
+        ...old.statuses,
       };
-      _snapshot = old.copyWith(statuses: {...old.statuses, ...known});
+      for (final CollectionItem item in visibleItems) {
+        if (_isBusy(old, item.target)) continue;
+        known[item.target.key] = const CollectionStatus(collected: true);
+        final String? canonicalKey = _canonicalKey(item.target);
+        if (canonicalKey != null) {
+          known[canonicalKey] = const CollectionStatus(collected: true);
+        }
+      }
+      _snapshot = old.copyWith(statuses: known);
       _notify();
+      return DataSuccess<PageResult<CollectionItem>>(
+        PageResult<CollectionItem>(
+          items: visibleItems,
+          nextPage: result.value.nextPage,
+        ),
+      );
     }
     return result;
   }
@@ -324,7 +394,9 @@ final class DefaultCollectionRepository implements CollectionRepository {
           final PageResult<CollectionItem> value =
               (result as DataSuccess<PageResult<CollectionItem>>).value;
           final bool found = value.items.any(
-            (CollectionItem item) => item.target.key == target.key,
+            (CollectionItem item) => target.recordId != null
+                ? item.target.key == target.key
+                : item.target.articleId == target.articleId,
           );
           if (found || value.nextPage == null) {
             if (!_sessions.isCurrent(tag) || _writeVersion != version) {
