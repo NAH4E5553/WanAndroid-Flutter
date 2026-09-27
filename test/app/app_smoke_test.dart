@@ -12,6 +12,7 @@ import 'package:wanandroid_flutter/src/model/article.dart';
 import 'package:wanandroid_flutter/src/model/page_result.dart';
 import 'package:wanandroid_flutter/src/model/search_history.dart';
 
+import '../support/fake_avatar_dependencies.dart';
 import '../support/fake_session_repositories.dart';
 import '../support/fixed_topic_repository.dart';
 
@@ -23,6 +24,7 @@ void main() {
       ProviderScope(
         overrides: [
           authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+          avatarRepositoryProvider.overrideWithValue(FakeAvatarRepository()),
           collectionRepositoryProvider.overrideWithValue(
             FakeCollectionRepository(),
           ),

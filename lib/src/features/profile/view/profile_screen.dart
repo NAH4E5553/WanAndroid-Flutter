@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanandroid_flutter/src/core/ui/app_scaffold.dart';
 import 'package:wanandroid_flutter/src/core/ui/app_top_bar.dart';
+import 'package:wanandroid_flutter/src/features/profile/component/wan_person_icon.dart';
 import 'package:wanandroid_flutter/src/features/profile/view/theme_settings_screen.dart';
 import 'package:wanandroid_flutter/src/features/profile/view_model/profile_view_model.dart';
+import 'package:wanandroid_flutter/src/model/avatar.dart';
 
 /// 个人中心（UI-08）：账户区、我的内容、偏好设置；登录/退出与主题摘要。
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -12,6 +16,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
     required this.onCollectionsTap,
     required this.onThemeTap,
     required this.onLoginTap,
+    required this.onAvatarTap,
     super.key,
   });
 
@@ -19,6 +24,9 @@ class ProfileScreen extends ConsumerStatefulWidget {
   final VoidCallback onCollectionsTap;
   final VoidCallback onThemeTap;
   final VoidCallback onLoginTap;
+
+  /// 会话已验证时的头像点击（进入查看页）；不可编辑状态下不触发。
+  final VoidCallback onAvatarTap;
 
   @override
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
@@ -44,8 +52,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           child: Row(
             spacing: 12,
             children: <Widget>[
-              CircleAvatar(
-                child: Text(view.displayName?.characters.first ?? '访'),
+              _ProfileAvatar(
+                avatar: state.avatar,
+                onTap: state.avatarEditable ? widget.onAvatarTap : null,
               ),
               Expanded(
                 child: Column(
@@ -162,5 +171,72 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return;
     }
     await ref.read(profileViewModelProvider.notifier).logout();
+  }
+}
+
+/// 账户头像：默认显示基线人物徽标（无用户名首字），自定义头像按圆形裁切展示。
+/// 会话已验证时整块可点（56dp ≥ 48dp），读屏名称「查看头像」。
+class _ProfileAvatar extends StatelessWidget {
+  const _ProfileAvatar({required this.avatar, required this.onTap});
+
+  final AvatarStateView avatar;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final String? path = avatar.customAvailable
+        ? avatar.customAvatarPath
+        : null;
+    final Widget content = SizedBox(
+      width: 56,
+      height: 56,
+      child: path != null
+          ? ClipOval(
+              child: Image.file(
+                File(path),
+                width: 56,
+                height: 56,
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
+                errorBuilder: (BuildContext context, Object _, StackTrace? _) =>
+                    const _DefaultAvatarBadge(),
+              ),
+            )
+          : const _DefaultAvatarBadge(),
+    );
+    if (onTap == null) {
+      return content;
+    }
+    return Semantics(
+      button: true,
+      label: '查看头像',
+      child: InkWell(
+        key: const ValueKey<String>('profile-avatar-entry'),
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: content,
+      ),
+    );
+  }
+}
+
+class _DefaultAvatarBadge extends StatelessWidget {
+  const _DefaultAvatarBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer,
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: WanPersonIcon(
+          size: 28,
+          color: theme.colorScheme.onPrimaryContainer,
+        ),
+      ),
+    );
   }
 }

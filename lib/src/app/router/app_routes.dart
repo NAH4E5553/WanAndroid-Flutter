@@ -62,6 +62,8 @@ class LoginRouteData extends GoRouteData with $LoginRouteData {
               routes: [TypedGoRoute<CollectionsReaderRouteData>(path: 'read')],
             ),
             TypedGoRoute<ThemeSettingsRouteData>(path: 'theme'),
+            TypedGoRoute<AvatarViewerRouteData>(path: 'avatar'),
+            TypedGoRoute<AvatarAdjustRouteData>(path: 'avatar/adjust'),
           ],
         ),
       ],
@@ -293,6 +295,14 @@ class ProfileRouteData extends GoRouteData with $ProfileRouteData {
       controller.push(2, route.location);
       unawaited(route.push<void>(context));
     },
+    onAvatarTap: () {
+      final controller = BranchRestorationScope.of(context);
+      final route = AvatarViewerRouteData(
+        routeInstanceId: controller.nextRouteInstanceId(),
+      );
+      controller.push(2, route.location);
+      unawaited(route.push<void>(context));
+    },
     onLoginTap: () => unawaited(const LoginRouteData().push<void>(context)),
   );
 }
@@ -382,6 +392,61 @@ class ThemeSettingsRouteData extends GoRouteData with $ThemeSettingsRouteData {
       key: state.pageKey,
       restorationId: routeInstanceId,
       child: buildThemeSettingsScreen(
+        onBack: () {
+          recordPop();
+          context.pop();
+        },
+      ),
+    );
+  }
+}
+
+class AvatarViewerRouteData extends GoRouteData with $AvatarViewerRouteData {
+  const AvatarViewerRouteData({required this.routeInstanceId});
+
+  final String routeInstanceId;
+
+  @override
+  Page<void> buildPage(BuildContext context, GoRouterState state) {
+    final controller = BranchRestorationScope.of(context);
+    final currentLocation = location;
+    void recordPop() => controller.pop(2, currentLocation);
+    return MaterialPage<void>(
+      key: state.pageKey,
+      restorationId: routeInstanceId,
+      child: buildAvatarViewerScreen(
+        routeKey: routeInstanceId,
+        onBack: () {
+          recordPop();
+          context.pop();
+        },
+        onAdjust: () {
+          final route = AvatarAdjustRouteData(
+            routeInstanceId: controller.nextRouteInstanceId(),
+          );
+          controller.push(2, route.location);
+          unawaited(route.push<void>(context));
+        },
+      ),
+    );
+  }
+}
+
+class AvatarAdjustRouteData extends GoRouteData with $AvatarAdjustRouteData {
+  const AvatarAdjustRouteData({required this.routeInstanceId});
+
+  final String routeInstanceId;
+
+  @override
+  Page<void> buildPage(BuildContext context, GoRouterState state) {
+    final controller = BranchRestorationScope.of(context);
+    final currentLocation = location;
+    void recordPop() => controller.pop(2, currentLocation);
+    return MaterialPage<void>(
+      key: state.pageKey,
+      restorationId: routeInstanceId,
+      child: buildAvatarAdjustScreen(
+        routeKey: routeInstanceId,
         onBack: () {
           recordPop();
           context.pop();

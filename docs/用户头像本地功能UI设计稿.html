@@ -1,0 +1,881 @@
+<!doctype html>
+<html lang="zh-CN" data-palette="slateBlue" data-mode="light" data-fs="1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>用户头像本地功能 · UI 视觉评审稿</title>
+<style>
+  :root{
+    --s:0.6;            /* 手机框缩放 */
+    --fs:1;             /* 字体缩放 100%/200% */
+    --fw:390px;         /* 手机框逻辑宽度 390/360/320 */
+    /* 以下由脚本按 wan_theme.dart 冻结 Token 注入 */
+    --primary:#315F84; --on-primary:#FFFFFF;
+    --primary-container:#CEE5FF; --on-primary-container:#0B1D2A;
+    --surface:#F7F9FC; --lowest:#FFFFFF; --low:#F1F4F7; --high:#E5E9EC;
+    --on-surface:#191C1F; --on-surface-variant:#42474D;
+    --outline:#72777D; --outline-variant:#C2C7CD;
+    --inverse-surface:#2E3135; --on-inverse-surface:#EFF1F5;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:#EEF1F5;color:#191C1F;padding:32px 20px 60px;
+  }
+  .page{max-width:1180px;margin:0 auto}
+  h1{font-size:22px;font-weight:600}
+  .sub{margin-top:6px;font-size:13px;color:#5A6067}
+  .sub a{color:#315F84;text-decoration:none}
+  .hint{margin-top:10px;font-size:13px;color:#5A6067;background:#FFFFFF;border:1px solid #D8DDE3;border-radius:10px;padding:10px 14px}
+  .controls{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin-top:16px}
+  .ctrl-label{font-size:12px;color:#5A6067;margin-right:2px}
+  .chips,.seg{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{display:flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid #C4CBD3;border-radius:12px;background:#FFFFFF;cursor:pointer;font-size:13px}
+  .chip .dots{display:flex;gap:3px}
+  .chip .dots i{width:10px;height:10px;border-radius:50%;border:0.5px solid rgba(0,0,0,.12)}
+  .chip.active{border:2px solid #191C1F;padding:6px 11px;font-weight:600}
+  .seg{border:1px solid #C4CBD3;border-radius:20px;overflow:hidden;background:#FFFFFF}
+  .seg button{border:0;background:transparent;padding:7px 16px;font-size:13px;cursor:pointer;color:#42474D}
+  .seg button.active{background:#315F84;color:#FFFFFF;font-weight:600}
+  .btn-reset{border:1px solid #C4CBD3;background:#FFFFFF;border-radius:20px;padding:7px 16px;font-size:13px;cursor:pointer}
+  .btn-reset:hover{background:#F5F7FA}
+
+  section{margin-top:44px}
+  section>h2{font-size:17px;font-weight:600;border-left:4px solid #315F84;padding-left:10px}
+  section>.sec-sub{font-size:13px;color:#5A6067;margin-top:6px}
+  .frames{display:flex;flex-wrap:wrap;gap:30px;margin-top:18px;align-items:flex-start}
+  .frame-block{width:calc(var(--fw)*var(--s))}
+  .phone-wrap{position:relative;width:calc(var(--fw)*var(--s));height:calc(844px*var(--s))}
+  .phone{
+    position:absolute;top:0;left:0;width:var(--fw);height:844px;overflow:hidden;
+    transform:scale(var(--s));transform-origin:0 0;border-radius:30px;
+    box-shadow:0 0 0 1px rgba(20,26,33,.10),0 16px 40px rgba(20,26,33,.16);
+    background:var(--surface);
+  }
+  .phone *{transition:background-color .18s ease,color .18s ease,border-color .18s ease}
+  .frame-caption{margin-top:12px}
+  .frame-caption .cap-title{font-size:13px;font-weight:600;display:block}
+  .frame-caption .cap-tags{font-size:11px;color:#315F84;background:#FFFFFF;border:1px solid #D8DDE3;border-radius:8px;padding:1px 6px;margin-left:6px;display:inline-block}
+  .frame-caption p{font-size:12px;color:#5A6067;margin-top:4px;line-height:1.55}
+  .specs{margin-top:20px;max-width:760px;background:#FFFFFF;border:1px solid #D8DDE3;border-radius:12px;padding:14px 18px}
+  .specs h3{font-size:13px;font-weight:600;margin-bottom:8px}
+  .specs li{font-size:12.5px;color:#42474D;line-height:1.8;margin-left:18px}
+
+  /* ============ 通用文字样式（对应 WanTypography，含 200% 缩放） ============ */
+  .t-hs{font-size:calc(20px*var(--fs));line-height:calc(28px*var(--fs));font-weight:600;color:var(--on-surface)}
+  .t-tm{font-size:calc(16px*var(--fs));line-height:calc(24px*var(--fs));font-weight:500;color:var(--on-surface)}
+  .t-bl{font-size:calc(16px*var(--fs));line-height:calc(24px*var(--fs));font-weight:400;color:var(--on-surface)}
+  .t-bm{font-size:calc(14px*var(--fs));line-height:calc(22px*var(--fs));font-weight:400;color:var(--on-surface)}
+  .t-bs{font-size:calc(12px*var(--fs));line-height:calc(18px*var(--fs));font-weight:400;color:var(--on-surface)}
+  .t-ll{font-size:calc(14px*var(--fs));line-height:calc(20px*var(--fs));font-weight:500;color:var(--on-surface)}
+  .t-lm{font-size:calc(12px*var(--fs));line-height:calc(16px*var(--fs));font-weight:500;color:var(--on-surface)}
+  .muted{color:var(--on-surface-variant)}
+  .ic{display:block;flex:none}
+
+  /* ============ 手机内部通用 ============ */
+  .statusbar{
+    position:absolute;top:0;left:0;right:0;height:32px;z-index:30;pointer-events:none;
+    display:flex;justify-content:space-between;align-items:center;padding:0 20px;color:var(--on-surface);
+  }
+  .phone[data-state="viewer"] .statusbar,.phone[data-state="sheet"] .statusbar,.phone[data-state="camera"] .statusbar{color:#FFFFFF}
+  .screen{position:absolute;inset:0;display:none;flex-direction:column}
+  .screen.active{display:flex}
+  .icon-btn{width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:transparent;border:0;border-radius:50%;cursor:pointer;color:inherit}
+  button{font-family:inherit}
+
+  /* ============ 顶栏（AppTopBar：64dp，描边返回箭头） ============ */
+  .topbar{min-height:64px;display:flex;align-items:center;background:var(--surface);padding:0 4px;flex:none}
+  .topbar-title{margin-left:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* ============ 界面一：个人中心 ============ */
+  .scr-profile{background:var(--surface);padding-top:32px}
+  .profile-body{flex:1;overflow-y:auto;overscroll-behavior:contain;padding-bottom:8px}
+  .account-row{display:flex;align-items:center;gap:12px;padding:calc(16px*var(--fs)) 16px}
+  .avatar-hit{border:0;background:transparent;padding:0;border-radius:50%;cursor:pointer;flex:none}
+  .avatar-hit:disabled{cursor:default}
+  .avatar{width:56px;height:56px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center}
+  .avatar-badge{background:var(--primary-container);color:var(--on-primary-container)}
+  .avatar-photo svg{width:100%;height:100%;display:block}
+  .phone[data-avatar="default"] .avatar-photo{display:none}
+  .phone[data-avatar="custom"] .avatar-badge{display:none}
+  .account-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .btn{min-height:40px;padding:0 18px;border-radius:20px;font-size:calc(14px*var(--fs));font-weight:500;cursor:pointer;flex:none;display:inline-flex;align-items:center;justify-content:center}
+  .btn-outline{background:transparent;border:1px solid var(--outline);color:var(--primary)}
+  .btn-filled{background:var(--primary);border:0;color:var(--on-primary)}
+  .hr{height:24px;display:flex;align-items:center;flex:none}
+  .hr i{display:block;width:100%;height:1px;background:var(--outline-variant)}
+  .section-label{padding:6px 16px;color:var(--primary)}
+  .list-tile{display:flex;align-items:center;gap:16px;min-height:56px;padding:0 16px;cursor:default}
+  .list-tile .lt-lead{color:var(--on-surface-variant);flex:none}
+  .list-tile .lt-main{flex:1;min-width:0}
+  .list-tile .lt-text{display:flex;flex-direction:column}
+  .list-tile .lt-trail{color:var(--on-surface-variant);flex:none;display:flex;align-items:center;gap:8px}
+  .navbar{flex:none;height:80px;background:var(--lowest);display:flex}
+  .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding-top:10px;gap:4px;color:var(--on-surface-variant)}
+  .nav-icon{width:64px;height:32px;border-radius:16px;display:flex;align-items:center;justify-content:center}
+  .nav-item.active{color:var(--on-surface)}
+  .nav-item.active .nav-icon{background:var(--primary-container);color:var(--on-primary-container)}
+
+  /* 滚动测试占位：仅 200% 字体验证模式显示，不进入正常字号视觉稿 */
+  .scroll-note{display:none;margin:8px 16px;padding:12px;border:1px dashed var(--outline-variant);border-radius:12px;font-size:calc(12px*var(--fs));line-height:calc(18px*var(--fs));color:var(--on-surface-variant)}
+  html[data-fs="2"] .scroll-note{display:block}
+
+  /* ============ 界面二：查看头像页（固定黑底特例） ============ */
+  .scr-viewer{background:#000000}
+  .viewer-actions{position:absolute;top:32px;left:0;right:0;display:flex;justify-content:space-between;padding:0 4px;z-index:10;color:#FFFFFF}
+  .viewer-body{flex:1;display:flex;align-items:center;justify-content:center}
+  .viewer-badge{width:192px;height:192px;border-radius:50%;background:var(--primary-container);color:var(--on-primary-container);display:flex;align-items:center;justify-content:center}
+  .viewer-photo{width:265px;height:265px;overflow:hidden}
+  .viewer-photo svg{width:100%;height:100%;display:block}
+  .phone[data-avatar="default"] .viewer-photo{display:none}
+  .phone[data-avatar="custom"] .viewer-badge{display:none}
+
+  /* ============ 界面三：底部操作弹框 ============ */
+  .sheet-layer{position:absolute;inset:0;z-index:20;visibility:hidden}
+  .sheet-layer.open{visibility:visible}
+  .sheet-scrim{position:absolute;inset:0;background:rgba(0,0,0,.54);opacity:0;transition:opacity .2s ease}
+  .sheet-layer.open .sheet-scrim{opacity:1}
+  .sheet{
+    position:absolute;left:0;right:0;bottom:0;background:var(--low);
+    border-radius:24px 24px 0 0;padding:0 0 14px;
+    transform:translateY(105%);transition:transform .25s cubic-bezier(.2,0,0,1);
+  }
+  .sheet-layer.open .sheet{transform:translateY(0)}
+  .handle{width:32px;height:4px;border-radius:2px;background:var(--on-surface-variant);opacity:.38;margin:10px auto 8px}
+  .sheet-item{display:flex;align-items:center;gap:16px;width:100%;min-height:48px;padding:0 16px;border:0;background:transparent;cursor:pointer;color:var(--on-surface);text-align:left}
+  .sheet-item:active{background:rgba(0,0,0,.06)}
+  .sheet-item .ic{color:var(--on-surface-variant)}
+  .sheet-divider{height:1px;background:var(--outline-variant);margin-top:8px}
+  .sheet-cancel{display:flex;align-items:center;justify-content:center;width:100%;min-height:56px;border:0;background:transparent;cursor:pointer;color:var(--on-surface)}
+  .snackbar{
+    position:absolute;left:12px;right:12px;bottom:14px;z-index:40;
+    background:var(--inverse-surface);color:var(--on-inverse-surface);
+    border-radius:4px;padding:14px 16px;opacity:0;transform:translateY(8px);
+    transition:opacity .2s ease,transform .2s ease;pointer-events:none;
+  }
+  .snackbar.show{opacity:1;transform:translateY(0)}
+  /* 权限永久拒绝引导弹框（与退出登录确认框同构） */
+  .dialog-layer{position:absolute;inset:0;z-index:50;visibility:hidden}
+  .dialog-layer.open{visibility:visible}
+  .dialog-scrim{position:absolute;inset:0;background:rgba(0,0,0,.54);opacity:0;transition:opacity .2s ease}
+  .dialog-layer.open .dialog-scrim{opacity:1}
+  .dialog{
+    position:absolute;left:24px;right:24px;top:50%;transform:translateY(-50%) scale(.96);
+    background:var(--high);border-radius:24px;padding:24px;
+    opacity:0;transition:opacity .18s ease,transform .18s ease;
+  }
+  .dialog-layer.open .dialog{opacity:1;transform:translateY(-50%) scale(1)}
+  .dialog-title{font-size:calc(24px*var(--fs));line-height:calc(32px*var(--fs));font-weight:600;color:var(--on-surface)}
+  .dialog-content{margin-top:12px;font-size:calc(14px*var(--fs));line-height:calc(22px*var(--fs));color:var(--on-surface-variant)}
+  .dialog-actions{margin-top:20px;display:flex;justify-content:flex-end;gap:8px}
+  .dialog-actions .tb-btn{color:var(--primary);font-weight:500}
+  /* 系统界面模拟页标注 */
+  .demo-tag{
+    position:absolute;top:42px;left:50%;transform:translateX(-50%);z-index:15;
+    background:rgba(15,20,26,.62);color:#FFFFFF;font-size:11px;line-height:16px;
+    padding:2px 10px;border-radius:9px;pointer-events:none;white-space:nowrap;
+  }
+  /* iOS 安全区示意（Home Indicator） */
+  .safe-demo .phone::after{
+    content:'';position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+    width:134px;height:5px;border-radius:3px;background:#FFFFFF;mix-blend-mode:difference;
+    z-index:60;pointer-events:none;
+  }
+  .safe-demo .sheet{padding-bottom:44px}
+  .safe-demo .snackbar{bottom:48px}
+  .safe-demo .adjust-hint{padding-bottom:34px}
+  .safe-demo .camera-bar{padding-bottom:22px}
+
+  /* ============ 界面三之系统相册选择器（模拟系统界面） ============ */
+  .scr-picker{background:var(--lowest);padding-top:32px}
+  .picker-head{min-height:56px;display:flex;align-items:center;padding:0 4px;color:var(--on-surface);flex:none}
+  .picker-head .t-hs{margin-left:4px}
+  .picker-recent{padding:6px 14px;color:var(--on-surface-variant);flex:none}
+  .picker-grid{flex:1;overflow:hidden;display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:0 2px 2px;align-content:start}
+  .thumb{aspect-ratio:1;border:0;padding:0;background:none;cursor:pointer;overflow:hidden;display:block}
+  .thumb svg{width:100%;height:100%;display:block}
+  .thumb:active{opacity:.85}
+
+  /* ============ 界面三之系统相机（模拟系统界面） ============ */
+  .scr-camera{background:#000000;padding-top:32px;color:#FFFFFF}
+  .camera-top{min-height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 4px;flex:none}
+  .camera-top .ic{color:#FFFFFF}
+  .camera-viewfinder{flex:1;position:relative;overflow:hidden;margin:0 12px;border-radius:12px}
+  .camera-viewfinder > svg{width:100%;height:100%;display:block}
+  .camera-grid{
+    position:absolute;inset:0;
+    background-image:linear-gradient(rgba(255,255,255,.3) 1px, transparent 1px),
+                     linear-gradient(90deg, rgba(255,255,255,.3) 1px, transparent 1px);
+    background-size:33.4% 33.4%;background-position:-1px -1px;
+  }
+  .camera-bar{flex:none;height:104px;display:flex;align-items:center;justify-content:space-between;padding:0 32px}
+  .camera-roll{width:44px;height:44px;border-radius:10px;overflow:hidden;border:2px solid rgba(255,255,255,.85);padding:0;background:none;cursor:pointer}
+  .camera-roll svg{width:100%;height:100%;display:block}
+  .camera-shutter{width:72px;height:72px;border-radius:50%;border:4px solid #FFFFFF;background:transparent;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .camera-shutter i{display:block;width:56px;height:56px;border-radius:50%;background:#FFFFFF;transition:transform .12s ease}
+  .camera-shutter:active i{transform:scale(.88)}
+  .camera-side{width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:transparent;border:0;color:#FFFFFF}
+
+  /* ============ 界面四：头像调整页 ============ */
+  .scr-adjust{background:var(--surface);padding-top:32px}
+  .topbar-adjust{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 4px}
+  .topbar-adjust .tb-left{justify-self:start}
+  .topbar-adjust .tb-right{justify-self:end}
+  .tb-btn{min-height:40px;padding:0 12px;border-radius:20px;border:0;background:transparent;cursor:pointer;color:var(--on-surface);display:inline-flex;align-items:center;justify-content:center}
+  .tb-done{color:var(--primary);font-weight:500}
+  .adjust-progress{height:2px;position:relative;overflow:hidden;display:none;flex:none}
+  .adjust-progress i{position:absolute;top:0;bottom:0;width:40%;background:var(--primary);animation:slide 1.1s infinite cubic-bezier(.4,0,.6,1)}
+  @keyframes slide{0%{left:-40%}100%{left:100%}}
+  .scr-adjust.processing .adjust-progress{display:block}
+  .scr-adjust.processing .tb-btn{opacity:.38;pointer-events:none}
+  .canvas{flex:1;position:relative;overflow:hidden;background:var(--lowest);container-type:size}
+  .canvas-photo{position:absolute;inset:0}
+  .canvas-photo svg{width:100%;height:100%;display:block}
+  .crop{
+    position:absolute;width:calc(min(100cqw, 100cqh) - 48px);aspect-ratio:1;left:50%;top:50%;transform:translate(-50%,-50%);
+    box-shadow:0 0 0 9999px rgba(0,0,0,.5);
+    border:1px solid rgba(255,255,255,.35);
+  }
+  .crop::before{content:'';position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(255,255,255,.7)}
+  .adjust-hint{flex:none;padding:12px 16px;text-align:center;color:var(--on-surface-variant)}
+
+  footer{margin-top:52px;font-size:12.5px;color:#5A6067;max-width:860px;line-height:1.8;border-top:1px solid #D8DDE3;padding-top:16px}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ======= 图标 sprite（描边风格，与 AppTopBar 箭头同族） ======= -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="photoGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#8FB8C6"/><stop offset="1" stop-color="#55738E"/>
+      </linearGradient>
+    </defs>
+    <symbol id="sym-person" viewBox="0 0 24 24">
+      <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M4 21 C4 16.6 7.6 14 12 14 C16.4 14 20 16.6 20 21"/>
+      </g>
+    </symbol>
+    <symbol id="sym-person-f" viewBox="0 0 24 24">
+      <path fill="currentColor" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 9c0-4.4 3.6-7 8-7s8 2.6 8 7H4Z"/>
+    </symbol>
+    <symbol id="sym-back" viewBox="0 0 24 24">
+      <path d="M16.1 4.8 8 12l8.1 7.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="sym-more" viewBox="0 0 24 24">
+      <g fill="currentColor"><circle cx="5.5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="18.5" cy="12" r="2"/></g>
+    </symbol>
+    <symbol id="sym-camera" viewBox="0 0 24 24">
+      <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+        <path d="M8.8 5h6.4l1.7 2.6H19a2.4 2.4 0 0 1 2.4 2.4v8.6A2.4 2.4 0 0 1 19 21H5a2.4 2.4 0 0 1-2.4-2.4V10A2.4 2.4 0 0 1 5 7.6h1.9L8.8 5Z"/>
+        <circle cx="12" cy="13.4" r="3.6"/>
+      </g>
+    </symbol>
+    <symbol id="sym-library" viewBox="0 0 24 24">
+      <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8.6 5H19a2 2 0 0 1 2 2v10.2"/>
+        <rect x="2.8" y="8.4" width="14.4" height="12" rx="2"/>
+        <circle cx="7.4" cy="12.4" r="1.3" fill="currentColor" stroke="none"/>
+        <path d="m5.2 18.6 3.3-3.3 2.6 2.6 1.9-1.9 2.4 2.4"/>
+      </g>
+    </symbol>
+    <symbol id="sym-download" viewBox="0 0 24 24">
+      <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 4v10.4M7.6 10.8 12 15.2l4.4-4.4"/>
+        <path d="M4.4 16.6v1.6a2 2 0 0 0 2 2h11.2a2 2 0 0 0 2-2v-1.6"/>
+      </g>
+    </symbol>
+    <symbol id="sym-star" viewBox="0 0 24 24">
+      <path d="m12 3.8 2.5 5.1 5.6.8-4 4 .9 5.6-5-2.7-5 2.7.9-5.6-4-4 5.6-.8L12 3.8Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="sym-history" viewBox="0 0 24 24">
+      <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5.1 8.2A8 8 0 1 1 4 12"/>
+        <path d="M4.4 4.6v3.8h3.8"/>
+        <path d="M12 8.6V12l2.6 1.6"/>
+      </g>
+    </symbol>
+    <symbol id="sym-cloud-off" viewBox="0 0 24 24">
+      <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8.2 18.6h8.2a3.6 3.6 0 0 0 1-7.1 5.2 5.2 0 0 0-9.6-1.9"/>
+        <path d="m4 20 16-16"/>
+      </g>
+    </symbol>
+    <symbol id="sym-palette" viewBox="0 0 24 24">
+      <path d="M12 3.6a8.4 8.4 0 1 0 0 16.8c1.4 0 2.2-.9 2.2-1.9 0-.8-.6-1.3-.6-2 0-.9.8-1.6 1.8-1.6h1.8a3.2 3.2 0 0 0 3.2-3.2c-.1-4.5-3.9-8.1-8.4-8.1Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+      <g fill="currentColor"><circle cx="7.6" cy="11" r="1.1"/><circle cx="10" cy="7.6" r="1.1"/><circle cx="13.9" cy="7.2" r="1.1"/><circle cx="16.7" cy="9.7" r="1.1"/></g>
+    </symbol>
+    <symbol id="sym-extension" viewBox="0 0 24 24">
+      <path d="M13 4.8a1.9 1.9 0 0 1 3.8 0V6h2.6A1.6 1.6 0 0 1 21 7.6v3h-1.2a1.9 1.9 0 0 0 0 3.8H21v3a1.6 1.6 0 0 1-1.6 1.6h-3v-1.2a1.9 1.9 0 0 0-3.8 0V19H9.6A1.6 1.6 0 0 1 8 17.4v-3H6.8a1.9 1.9 0 0 1 0-3.8H8V7.6A1.6 1.6 0 0 1 9.6 6H13V4.8Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="sym-chevron" viewBox="0 0 24 24">
+      <path d="M9.5 6 15.5 12 9.5 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="sym-home" viewBox="0 0 24 24">
+      <path d="M4.5 11 12 4.5 19.5 11v8a1.3 1.3 0 0 1-1.3 1.3h-3.4v-5.4H9.2v5.4H5.8A1.3 1.3 0 0 1 4.5 19v-8Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="sym-grid" viewBox="0 0 24 24">
+      <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+        <rect x="4" y="4" width="6.6" height="6.6" rx="1.4"/><rect x="13.4" y="4" width="6.6" height="6.6" rx="1.4"/>
+        <rect x="4" y="13.4" width="6.6" height="6.6" rx="1.4"/><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="1.4"/>
+      </g>
+    </symbol>
+    <symbol id="sym-photo" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+      <rect width="100" height="100" fill="url(#photoGrad)"/>
+      <circle cx="50" cy="39" r="15" fill="rgba(255,255,255,.9)"/>
+      <path d="M50 59c-15 0-25 8.5-28 21v20h56V80c-3-12.5-13-21-28-21Z" fill="rgba(255,255,255,.9)"/>
+    </symbol>
+    <symbol id="sym-photo-mountain" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+      <defs><linearGradient id="gMtn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A7C4E0"/><stop offset="1" stop-color="#D8E6F2"/></linearGradient></defs>
+      <rect width="100" height="100" fill="url(#gMtn)"/>
+      <circle cx="72" cy="24" r="10" fill="#FFD98A"/>
+      <path d="M0 78 28 42 48 70 64 50 100 88V100H0Z" fill="#5B7A99"/>
+      <path d="M0 88 20 66 44 92v8H0Z" fill="#3F5A73"/>
+    </symbol>
+    <symbol id="sym-photo-beach" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+      <defs><linearGradient id="gBch" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE3B3"/><stop offset="1" stop-color="#FFC08A"/></linearGradient></defs>
+      <rect width="100" height="100" fill="url(#gBch)"/>
+      <circle cx="30" cy="28" r="12" fill="#FFB84D"/>
+      <rect y="60" width="100" height="20" fill="#57A8C7"/>
+      <path d="M0 78Q25 70 50 78T100 78V100H0Z" fill="#F0E4C8"/>
+    </symbol>
+    <symbol id="sym-photo-flower" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+      <defs><linearGradient id="gFlw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFDDE8"/><stop offset="1" stop-color="#FFC1D4"/></linearGradient></defs>
+      <rect width="100" height="100" fill="url(#gFlw)"/>
+      <path d="M50 52V88" stroke="#4C8C5C" stroke-width="4" stroke-linecap="round"/>
+      <path d="M50 72C38 68 32 58 34 50c10 2 16 12 16 22Z" fill="#5EA06E"/>
+      <g fill="#FFA8C2"><circle cx="50" cy="22" r="9"/><circle cx="66" cy="34" r="9"/><circle cx="60" cy="52" r="9"/><circle cx="40" cy="52" r="9"/><circle cx="34" cy="34" r="9"/></g>
+      <circle cx="50" cy="37" r="8" fill="#FF8FB0"/>
+    </symbol>
+    <symbol id="sym-photo-city" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+      <defs><linearGradient id="gCty" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2E3A55"/><stop offset="1" stop-color="#5A6C8C"/></linearGradient></defs>
+      <rect width="100" height="100" fill="url(#gCty)"/>
+      <circle cx="78" cy="18" r="8" fill="#F4E9C8"/>
+      <rect x="8" y="52" width="14" height="48" fill="#232E44"/>
+      <rect x="26" y="40" width="16" height="60" fill="#2A3650"/>
+      <rect x="46" y="58" width="12" height="42" fill="#1C2740"/>
+      <rect x="62" y="34" width="18" height="66" fill="#2A3650"/>
+      <rect x="84" y="50" width="12" height="50" fill="#232E44"/>
+    </symbol>
+    <symbol id="sym-photo-plant" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+      <defs><linearGradient id="gPlt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E3F1E0"/><stop offset="1" stop-color="#BFE0BC"/></linearGradient></defs>
+      <rect width="100" height="100" fill="url(#gPlt)"/>
+      <path d="M50 96C50 60 40 40 22 32c4 26 14 48 28 64Z" fill="#4C8C5C"/>
+      <path d="M50 96c0-36 10-56 28-64-4 26-14 48-28 64Z" fill="#5EA06E"/>
+      <path d="M50 96c-4-26-4-50 0-70 4 20 4 44 0 70Z" fill="#6FB07E"/>
+    </symbol>
+    <symbol id="sym-photo-night" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+      <defs><linearGradient id="gNgt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0F1B33"/><stop offset="1" stop-color="#22345C"/></linearGradient></defs>
+      <rect width="100" height="100" fill="url(#gNgt)"/>
+      <g fill="#E8EEFF"><circle cx="18" cy="14" r="1.6"/><circle cx="30" cy="30" r="1.3"/><circle cx="58" cy="10" r="1.4"/><circle cx="88" cy="42" r="1.5"/><circle cx="40" cy="16" r="1.1"/></g>
+      <circle cx="76" cy="26" r="10" fill="#F4E9C8"/><circle cx="70" cy="22" r="9" fill="#152544"/>
+      <path d="M0 84 24 60 44 80 62 62 100 90v10H0Z" fill="#0B1426"/>
+    </symbol>
+    <symbol id="sym-bolt" viewBox="0 0 24 24">
+      <path d="M13 3 6.5 13H11l-1 8L16.5 11H12l1-8Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="sym-flip" viewBox="0 0 24 24">
+      <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 12a8 8 0 1 1-2.34-5.66"/>
+        <path d="M20 3v4.5h-4.5"/>
+      </g>
+    </symbol>
+    <symbol id="sym-status" viewBox="0 0 46 12">
+      <g fill="currentColor">
+        <rect x="0" y="7" width="2.6" height="4" rx="0.8"/><rect x="4" y="5" width="2.6" height="6" rx="0.8"/>
+        <rect x="8" y="3" width="2.6" height="8" rx="0.8"/><rect x="12" y="1" width="2.6" height="10" rx="0.8"/>
+        <rect x="27" y="1.5" width="16" height="9" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <rect x="29" y="3.5" width="9" height="5" rx="1"/>
+        <rect x="44" y="4" width="2" height="4" rx="1"/>
+      </g>
+    </symbol>
+  </svg>
+
+  <h1>用户头像本地功能 · UI 视觉评审稿</h1>
+  <p class="sub">配套设计文档 <a href="./用户头像本地功能UI设计.md">docs/用户头像本地功能UI设计.md</a> · 色值取自 lib/src/core/theme/wan_theme.dart 冻结 Token · 评审用静态稿，非生产实现</p>
+  <div class="hint">可交互：点击「头像」「⋯」→「拍照」（快门）/「从手机相册选择」（点图片）→「完成」提交或「取消」丢弃（候选图在完成前不影响当前头像）；顶部可切换四套配色、浅/深模式、100%/200% 字体、390/360/320 设备宽度、异常演示（权限被拒/写入失败）与安全区示意。浏览器稿不模拟捏合缩放/拖动/旋转手势。</div>
+  <div class="controls">
+    <div><span class="ctrl-label">配色</span><div class="chips" id="chips"></div></div>
+    <div><span class="ctrl-label">模式</span><div class="seg" id="mode-seg">
+      <button data-mode="light">浅色</button><button data-mode="dark">深色</button>
+    </div></div>
+    <div><span class="ctrl-label">字体</span><div class="seg" id="fs-seg">
+      <button data-fs="1">100%</button><button data-fs="2">200%</button>
+    </div></div>
+    <div><span class="ctrl-label">设备宽度</span><div class="seg" id="w-seg">
+      <button data-w="390">390</button><button data-w="360">360</button><button data-w="320">320</button>
+    </div></div>
+    <div><span class="ctrl-label">异常演示</span><div class="seg" id="fail-seg">
+      <button data-fail="none">正常</button><button data-fail="perm">权限被拒</button><button data-fail="write">写入失败</button>
+    </div></div>
+    <div><span class="ctrl-label">安全区</span><div class="seg" id="safe-seg">
+      <button data-safe="off">关</button><button data-safe="on">iOS 示意</button>
+    </div></div>
+    <button class="btn-reset" id="reset">重置演示</button>
+  </div>
+
+  <section>
+    <h2>一、个人中心头像入口</h2>
+    <p class="sec-sub">仅替换 UI-08 账户行头像元素，账户行其余结构不变；默认人物图标取代用户名首字。</p>
+    <div class="frames" data-frames="f1,f2,f9"></div>
+    <ul class="specs">
+      <h3>规格（设计稿 §3）</h3>
+      <li>56dp 圆形徽标：<code>primaryContainer</code> 底 + 28dp 人物描边图标（<code>onPrimaryContainer</code>），基线 ic_person 矢量语义，图标/容器比 0.5。</li>
+      <li>自定义头像在个人中心圆形裁切显示；查看页显示方形原图（AVATAR-02）。</li>
+      <li>已登录且会话已验证才可点（≥48dp，读屏「查看头像」）；游客/恢复中/未验证/失效/存储异常均不可点。</li>
+      <li>200% 字体：账户行自动撑高，点击区不变小；切换右上角「200%」查看。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>二、查看头像页</h2>
+    <p class="sec-sub">独立全屏媒体查看面；纯黑背景 + 白色图标为登记特例（设计稿 §4.2），保存到手机不含此底图。</p>
+    <div class="frames" data-frames="f3,f4"></div>
+    <ul class="specs">
+      <h3>规格（设计稿 §4）</h3>
+      <li>固定 #000000 底；返回（描边箭头）与横向三点（<code>more_horiz</code>）各 48dp 命中区、24dp 图标。</li>
+      <li>自定义头像初始 265dp（68% 视口）方形原图；默认徽标放大为 192dp / 96dp 图标。</li>
+      <li>双指缩放 1.0–5.0×、拖动钳制边界、双击复位 1.0×/2.0×（220ms fastOutSlowIn）；手势不触发修改。</li>
+      <li>本地文件丢失/损坏时安全回退默认徽标，界面不出错误文案（需求 §4）。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>三、底部操作弹框与系统选择界面</h2>
+    <p class="sec-sub">查看页右上角 ⋯ 打开弹框；固定四项，无恢复默认/删除入口（AVATAR-03/12）。选择器与相机页均为系统界面模拟，真实实现调用 Android Photo Picker / iOS 照片选择器与系统相机（需求 §3.4/§3.5）。</p>
+    <div class="frames" data-frames="f5,f7,f8"></div>
+    <ul class="specs">
+      <h3>规格（设计稿 §5）</h3>
+      <li>容器 <code>surfaceContainerLow</code>，顶部圆角 24dp（WanShapes.large），拖动把手 32×4dp（onSurfaceVariant 38%）。</li>
+      <li>操作行 minHeight 48dp：图标 24dp <code>onSurfaceVariant</code> + <code>bodyLarge</code> 文案；整行可点。</li>
+      <li>8dp 间距 + 1dp <code>outlineVariant</code> 分隔；「取消」minHeight 56dp 居中（<code>labelLarge</code>，无图标）。</li>
+      <li>遮罩点击/下滑/系统返回只关弹框并停留查看页；读屏焦点进入弹框，关闭后回到 ⋯。</li>
+      <li>「拍照」→ 系统相机（模拟）：仅快门拍静态照片，快门后带拍摄画面进入调整页；在系统相机中取消/失败/返回回查看页且原头像不变；不请求麦克风、不在进入个人中心时预请求权限（AVATAR-04，需求 §3.4/§6）。</li>
+      <li>「从手机相册选择」→ 系统选择器（模拟）：仅单选静态图片，点击任一图片立即回传并进入调整页；取消/返回回查看页且原头像不变，不申请全相册权限（AVATAR-05，需求 §3.5/§6）。</li>
+      <li>「保存到手机」：自定义头像存已生效 512×512 副本，默认头像存徽标渲染的透明底 PNG；成功提示见 Snackbar。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>四、头像调整页</h2>
+    <p class="sec-sub">主题化裁切工作页；点击「完成」后才解码、裁切、去元数据并原子保存（AVATAR-06/07/08）。</p>
+    <div class="frames" data-frames="f6"></div>
+    <ul class="specs">
+      <h3>规格（设计稿 §6）</h3>
+      <li>顶栏 64dp：「取消」（<code>onSurface</code>）·「调整头像」（headlineSmall）·「完成」（<code>primary</code>，仅图片可解码时可用）。</li>
+      <li>画布 <code>surfaceContainerLowest</code>；1:1 裁切方框按正式规则动态计算：竖屏取页面实际可用宽度减左右各 24dp，横屏或垂直空间不足时增加高度保护（随设备宽度、窗口、字体缩放自适应，可用顶部「设备宽度」切换验证），内切圆环 1.5dp 白 70%，方框外 50% scrim。</li>
+      <li>拖动、双指缩放与任意角度旋转（已确认）：旋转过程中按角度动态提高最小缩放，保证裁切区任何角度不露空底；验收覆盖 0°/45°/90°、最小/最大缩放、旋转后继续拖动与复位。</li>
+      <li>完成 → 处理中：顶栏下 2dp <code>primary</code> 进度条，双按钮禁用、手势锁定；成功原子替换并回查看页，失败停留本页可重试或取消，原头像任何情况下不变。</li>
+      <li>「取消」/系统返回丢弃候选图片，回查看页；候选图在「完成」成功前不会出现在查看页与个人中心（本稿可验证）。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>五、异常、权限与账号状态</h2>
+    <p class="sec-sub">交互演示：顶部「异常演示」切到「权限被拒」再点「拍照」（权限引导弹框）或「保存到手机」（写入权限失败）；切到「写入失败」再点「完成」或「保存到手机」（失败保留原头像）。「安全区」开关演示 Home Indicator 避让。本节矩阵为实现阶段验收要求：HTML 仅动态演示权限被拒弹框与写入失败两种反馈，其余（Tab 焦点陷阱、权限 API 实调、解码失败/账号切换动态演示、EXIF 清理、原子写入与并发守卫等）不在稿中模拟，不得报告为已动态验证。</p>
+    <ul class="specs">
+      <h3>权限边界与失败文案矩阵（分动作、分平台）</h3>
+      <li><strong>拍照</strong>：Android 在用户选择「拍照」时申请相机运行时权限；iOS 配置相机用途说明（NSCameraUsageDescription）后由系统弹窗。首次拒绝 → SnackBar 用途反馈「需要相机权限用于拍摄头像，可在系统设置中开启」；永久拒绝 → 引导弹框「无法使用相机 / 前往设置」（点「拍照」体验）；相机不可用 → 「无法打开相机，请重试」。</li>
+      <li><strong>从手机相册选择</strong>：Android Photo Picker / SAF 与 iOS PHPicker 均无需申请相册读取权限（不是 READ_MEDIA_IMAGES / 完整相册访问）；读取失败 → 「无法读取图片，请重试」，留在查看页。</li>
+      <li><strong>保存到手机</strong>：写媒体库与读图能力不同。Android API 29+ 经 MediaStore 写入无需运行时权限，API 24–28 需 WRITE_EXTERNAL_STORAGE（降级路径单独验证，需求 §6）；iOS 仅需"添加到相册"用途说明（NSPhotoLibraryAddUsageDescription）。权限拒绝 → 「未获得相册写入权限，头像未保存」；空间不足/写入失败 → 「头像保存失败，请重试」。</li>
+      <li><strong>处理/持久化失败</strong>：解码失败或超大图 → 留在查看页提示「无法读取图片，请重试」；裁切保存失败 → 停留调整页提示「头像保存失败，请重试」，可重试或取消；两种失败都不得覆盖原头像、不留下半成品。</li>
+      <li><strong>本地文件丢失/损坏</strong>：安全回退显示默认人物徽标，不展示错误 UI，只保留脱敏诊断日志。</li>
+      <li><strong>调起系统页面期间退出/切换账号</strong>：返回时校验路由实例与账号代次，不匹配即丢弃候选结果，不写入、不导航、不弹过期成功提示；已退出则头像区回游客默认态。</li>
+      <li><strong>会话不可编辑态</strong>：恢复中/未验证/失效/存储异常时头像不可点、不进入编辑流程（见第一节游客态）。</li>
+      <li><strong>并发守卫</strong>：选图、拍照、处理、本地保存与保存到相册均单飞；处理中重复提交被忽略。</li>
+    </ul>
+  </section>
+
+  <footer>
+    本页为评审用静态视觉稿：不含真实图片解码、EXIF 处理、权限请求、文件保存与账号代次逻辑；手势（捏合缩放/拖动/旋转）未在浏览器中模拟。
+    「拍照」「从手机相册选择」分别经模拟的系统相机页与照片选择器页演示流程，实际实现调用系统相机与 Android Photo Picker / iOS 照片选择器，系统界面保留平台自有外观（需求 §3.4/§3.5/§6）。
+    色值与主题角色的对应关系见设计文档第 8 节；最终视觉以 Flutter 实现与阶段 6 双端逐页验收为准。
+  </footer>
+</div>
+
+<script>
+/* ================= 主题数据（wan_theme.dart 冻结 Token） ================= */
+const PALETTE_NAMES = {inkTeal:'墨青绿', slateBlue:'石板蓝', warmAmber:'暖琥珀', berryRose:'莓果玫瑰'};
+const THEMES = {
+  inkTeal:{
+    light:{primary:'#006B5B',onPrimary:'#FFFFFF',primaryContainer:'#8EF7DC',onPrimaryContainer:'#00201A',secondary:'#4A635C'},
+    dark:{primary:'#82D5C2',onPrimary:'#00382F',primaryContainer:'#005045',onPrimaryContainer:'#A3F2DD',secondary:'#B0CCC3'}
+  },
+  slateBlue:{
+    light:{primary:'#315F84',onPrimary:'#FFFFFF',primaryContainer:'#CEE5FF',onPrimaryContainer:'#0B1D2A',secondary:'#50606F'},
+    dark:{primary:'#9CCAFA',onPrimary:'#003353',primaryContainer:'#164766',onPrimaryContainer:'#CEE5FF',secondary:'#B7C9D9'}
+  },
+  warmAmber:{
+    light:{primary:'#795900',onPrimary:'#FFFFFF',primaryContainer:'#FFDF90',onPrimaryContainer:'#261A00',secondary:'#6B5D3F'},
+    dark:{primary:'#EFC15C',onPrimary:'#402D00',primaryContainer:'#5C4300',onPrimaryContainer:'#FFDF90',secondary:'#D7C4A0'}
+  },
+  berryRose:{
+    light:{primary:'#8A3F62',onPrimary:'#FFFFFF',primaryContainer:'#FFD9E5',onPrimaryContainer:'#3A071F',secondary:'#74565F'},
+    dark:{primary:'#FFAFCE',onPrimary:'#53112F',primaryContainer:'#6D2949',onPrimaryContainer:'#FFD9E5',secondary:'#E3BDC7'}
+  }
+};
+const NEUTRALS = {
+  light:{surface:'#F7F9FC',lowest:'#FFFFFF',low:'#F1F4F7',high:'#E5E9EC',onSurface:'#191C1F',osv:'#42474D',outline:'#72777D',outlineVariant:'#C2C7CD',inverseSurface:'#2E3135',onInverseSurface:'#EFF1F5'},
+  dark:{surface:'#111417',lowest:'#0C0F12',low:'#191C20',high:'#282A2E',onSurface:'#E1E2E6',osv:'#C2C7CD',outline:'#8C9197',outlineVariant:'#42474D',inverseSurface:'#E1E2E6',onInverseSurface:'#2E3135'}
+};
+
+const root = document.documentElement;
+let palette = root.dataset.palette, mode = root.dataset.mode, fs = root.dataset.fs;
+
+function apply(){
+  const t = THEMES[palette][mode], n = NEUTRALS[mode], r = root.style;
+  r.setProperty('--primary',t.primary); r.setProperty('--on-primary',t.onPrimary);
+  r.setProperty('--primary-container',t.primaryContainer); r.setProperty('--on-primary-container',t.onPrimaryContainer);
+  r.setProperty('--surface',n.surface); r.setProperty('--lowest',n.lowest); r.setProperty('--low',n.low); r.setProperty('--high',n.high);
+  r.setProperty('--on-surface',n.onSurface); r.setProperty('--on-surface-variant',n.osv);
+  r.setProperty('--outline',n.outline); r.setProperty('--outline-variant',n.outlineVariant);
+  r.setProperty('--inverse-surface',n.inverseSurface); r.setProperty('--on-inverse-surface',n.onInverseSurface);
+  r.setProperty('--fs',fs);
+  root.dataset.fs = fs; root.dataset.mode = mode; root.dataset.palette = palette;
+  document.querySelectorAll('#chips .chip').forEach(c=>{
+    const ct = THEMES[c.dataset.palette][mode];
+    const dots = c.querySelectorAll('.dots i');
+    dots[0].style.background = ct.primary; dots[1].style.background = ct.secondary; dots[2].style.background = ct.primaryContainer;
+    c.classList.toggle('active', c.dataset.palette===palette);
+  });
+  document.querySelectorAll('#mode-seg button').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+  document.querySelectorAll('#fs-seg button').forEach(b=>b.classList.toggle('active',b.dataset.fs===fs));
+  document.querySelectorAll('.theme-sub').forEach(el=>{
+    el.textContent = PALETTE_NAMES[palette] + ' · ' + (mode==='light'?'浅色':'深色');
+  });
+}
+// 配色切换 chips
+const chipsEl = document.getElementById('chips');
+chipsEl.innerHTML = Object.keys(PALETTE_NAMES).map(k=>
+  `<button class="chip" data-palette="${k}"><span>${PALETTE_NAMES[k]}</span><span class="dots"><i></i><i></i><i></i></span></button>`).join('');
+chipsEl.addEventListener('click',e=>{const c=e.target.closest('.chip'); if(c){palette=c.dataset.palette; apply();}});
+document.getElementById('mode-seg').addEventListener('click',e=>{const b=e.target.closest('button'); if(b){mode=b.dataset.mode; apply();}});
+document.getElementById('fs-seg').addEventListener('click',e=>{const b=e.target.closest('button'); if(b){fs=b.dataset.fs; apply();}});
+
+/* ================= 手机框模板 ================= */
+const icon = (name,size)=>`<svg class="ic" width="${size}" height="${size}" aria-hidden="true"><use href="#sym-${name}"/></svg>`;
+const hrefOf = (id) => id === 'portrait' ? '#sym-photo' : '#sym-photo-' + id;
+const photoSvg = (id = 'portrait') => `<svg aria-hidden="true"><use class="ph-use" href="${hrefOf(id)}" width="100%" height="100%"/></svg>`;
+const CHEVRON = icon('chevron',24);
+const STATUS = `<svg width="46" height="12" aria-hidden="true"><use href="#sym-status"/></svg>`;
+
+function listTile(sym,title,trail,twoLineSub){
+  const main = twoLineSub
+    ? `<span class="t-bl">${title}</span><span class="t-bs muted">${twoLineSub}</span>`
+    : `<span class="t-bl">${title}</span>`;
+  return `<div class="list-tile"><span class="lt-lead">${icon(sym,24)}</span>
+    <span class="lt-main"><span class="lt-text">${main}</span></span>
+    <span class="lt-trail">${trail||CHEVRON}</span></div>`;
+}
+const NAV = `<div class="navbar">
+  <div class="nav-item"><span class="nav-icon">${icon('home',24)}</span><span class="t-lm">首页</span></div>
+  <div class="nav-item"><span class="nav-icon">${icon('grid',24)}</span><span class="t-lm">专题</span></div>
+  <div class="nav-item active"><span class="nav-icon">${icon('person-f',24)}</span><span class="t-lm">我的</span></div>
+</div>`;
+
+function screenProfile(f){
+  const avatarInner = `<span class="avatar avatar-badge">${icon('person',28)}</span><span class="avatar avatar-photo">${photoSvg()}</span>`;
+  const name = f.logged ? '晓风' : '未登录';
+  const btn = f.logged
+    ? `<button class="btn btn-outline">退出登录</button>`
+    : `<button class="btn btn-filled">登录</button>`;
+  return `<div class="screen scr-profile">
+    <div class="topbar"><span class="icon-btn" aria-hidden="true">${icon('back',24)}</span><span class="t-hs topbar-title">个人中心</span></div>
+    <div class="profile-body">
+      <div class="account-row">
+        <button class="avatar-hit" data-action="open-viewer" aria-label="查看头像" ${f.logged?'':'disabled'}>${avatarInner}</button>
+        <div class="account-text"><span class="t-tm">${name}</span></div>
+        ${btn}
+      </div>
+      <div class="hr"><i></i></div>
+      <div class="section-label t-tm">我的内容</div>
+      ${listTile('star','我的收藏')}
+      ${listTile('history','阅读历史')}
+      ${listTile('cloud-off','离线内容','<span class="t-bm muted">待接入</span>')}
+      <div class="hr"><i></i></div>
+      <div class="section-label t-tm">偏好设置</div>
+      ${listTile('palette','外观与主题',CHEVRON,'<span class="theme-sub">石板蓝 · 浅色</span>')}
+      ${listTile('extension','其他设置','<span class="t-bm muted">待接入</span>')}
+      <div class="scroll-note">测试占位（非产品入口）：验证 200% 字体下列表滚动可达、底部内容不被导航遮挡。</div>
+      <div class="scroll-note">测试占位（非产品入口）：长文案场景下操作项不截断，仅为滚动验证服务。</div>
+    </div>
+    ${NAV}
+  </div>`;
+}
+function screenViewer(){
+  return `<div class="screen scr-viewer">
+    <div class="viewer-actions">
+      <button class="icon-btn" data-action="back-profile" aria-label="返回">${icon('back',24)}</button>
+      <button class="icon-btn" data-action="open-sheet" aria-label="更多操作">${icon('more',24)}</button>
+    </div>
+    <div class="viewer-body">
+      <span class="viewer-badge" role="img" aria-label="当前头像">${icon('person',96)}</span>
+      <span class="viewer-photo" role="img" aria-label="当前头像">${photoSvg()}</span>
+    </div>
+  </div>`;
+}
+function screenAdjust(){
+  return `<div class="screen scr-adjust">
+    <div class="topbar topbar-adjust">
+      <button class="tb-btn t-bl tb-left" data-action="adjust-cancel">取消</button>
+      <span class="t-hs">调整头像</span>
+      <button class="tb-btn t-bl tb-right tb-done" data-action="adjust-done">完成</button>
+    </div>
+    <div class="adjust-progress"><i></i></div>
+    <div class="canvas">
+      <div class="canvas-photo">${photoSvg()}</div>
+      <div class="crop"></div>
+    </div>
+    <div class="adjust-hint t-bs">拖动、双指缩放或旋转进行调整</div>
+  </div>`;
+}
+function screenPicker(){
+  const THUMBS = ['portrait','mountain','beach','flower','city','plant','night','mountain','beach','flower','city','plant','night','portrait','mountain','beach'];
+  return `<div class="screen scr-picker">
+    <span class="demo-tag">流程示意 · 非视觉验收页面</span>
+    <div class="picker-head">
+      <button class="icon-btn" data-action="picker-back" aria-label="返回">${icon('back',24)}</button>
+      <span class="t-hs">选择照片</span>
+    </div>
+    <div class="picker-recent t-lm">最近</div>
+    <div class="picker-grid">
+      ${THUMBS.map(id => `<button class="thumb" data-action="pick" data-photo="${id}" aria-label="选择图片">${photoSvg(id)}</button>`).join('')}
+    </div>
+  </div>`;
+}
+function screenCamera(){
+  return `<div class="screen scr-camera">
+    <span class="demo-tag">流程示意 · 非视觉验收页面</span>
+    <div class="camera-top">
+      <button class="icon-btn" data-action="camera-back" aria-label="返回">${icon('back',24)}</button>
+      <span class="icon-btn" aria-hidden="true">${icon('bolt',24)}</span>
+    </div>
+    <div class="camera-viewfinder">
+      ${photoSvg('mountain')}
+      <div class="camera-grid"></div>
+    </div>
+    <div class="camera-bar">
+      <span class="camera-roll" aria-hidden="true">${photoSvg('portrait')}</span>
+      <button class="camera-shutter" data-action="capture" aria-label="拍照"><i></i></button>
+      <span class="camera-side" aria-hidden="true">${icon('flip',24)}</span>
+    </div>
+  </div>`;
+}
+function sheetLayer(){
+  return `<div class="sheet-layer">
+    <div class="sheet-scrim" data-action="close-sheet"></div>
+    <div class="sheet" role="dialog" aria-modal="true" aria-label="头像操作">
+      <div class="handle"></div>
+      <button class="sheet-item" data-action="to-camera">${icon('camera',24)}<span class="t-bl">拍照</span></button>
+      <button class="sheet-item" data-action="to-picker">${icon('library',24)}<span class="t-bl">从手机相册选择</span></button>
+      <button class="sheet-item" data-action="save-phone">${icon('download',24)}<span class="t-bl">保存到手机</span></button>
+      <div class="sheet-divider"></div>
+      <button class="sheet-cancel t-ll" data-action="close-sheet">取消</button>
+    </div>
+  </div>
+  <div class="snackbar t-bm" role="status"></div>
+  <div class="dialog-layer">
+    <div class="dialog-scrim" data-action="dialog-dismiss"></div>
+    <div class="dialog" role="alertdialog" aria-modal="true" aria-label="无法使用相机">
+      <div class="dialog-title">无法使用相机</div>
+      <div class="dialog-content">拍摄头像需要相机权限。可以在系统设置中开启后重试；当前头像不会被修改。</div>
+      <div class="dialog-actions">
+        <button class="tb-btn t-bl" data-action="dialog-dismiss">取消</button>
+        <button class="tb-btn t-bl" data-action="dialog-settings">前往设置</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ================= 框架定义与渲染 ================= */
+const FRAMES = [
+  {id:'f1', title:'个人中心 · 游客', tags:'AVATAR-01 · 11', spec:'默认人物图标、无用户名首字；游客/恢复中/未验证/失效/存储异常不可点击，不进入查看页。', logged:false, avatar:'default', init:'profile'},
+  {id:'f2', title:'个人中心 · 已登录', tags:'AVATAR-01 · 07', spec:'自定义头像 56dp 圆形裁切；整块可点（≥48dp），读屏「查看头像」→ 查看页。点击头像体验。', logged:true, avatar:'custom', init:'profile'},
+  {id:'f9', title:'个人中心 · 已登录（默认头像）', tags:'AVATAR-01 · 02', spec:'首次使用关键入口：已登录且会话已验证、尚未设置头像——默认徽标同样可点，进入查看页展示放大徽标（点击头像体验）。', logged:true, avatar:'default', init:'profile'},
+  {id:'f3', title:'查看页 · 默认头像', tags:'AVATAR-02', spec:'纯黑查看面；192dp 徽标（图标比 0.5）。「保存到手机」导出此徽标渲染图。', logged:true, avatar:'default', init:'viewer'},
+  {id:'f4', title:'查看页 · 自定义头像', tags:'AVATAR-02', spec:'方形保存原图，初始约 68% 视口；缩放/拖动不触发修改；返回回个人中心。点 ⋯ 打开弹框。', logged:true, avatar:'custom', init:'viewer'},
+  {id:'f5', title:'底部操作弹框', tags:'AVATAR-03 · 09 · 12', spec:'固定四项；取消经分隔独立置底；遮罩/下滑/系统返回只关弹框；无恢复默认/删除。「保存到手机」可体验成功反馈。', logged:true, avatar:'custom', init:'sheet'},
+  {id:'f6', title:'头像调整页', tags:'AVATAR-06 · 07 · 08', spec:'1:1 方形裁切 + 圆形遮罩引导 + 方框外 50% scrim；「完成」→ 处理中 → 原子替换后回查看页；「取消」丢弃候选图，当前头像不变（本稿已实现候选/已生效分离，可验证 AVATAR-06）。', logged:true, avatar:'custom', init:'adjust'},
+  {id:'f7', title:'系统相册选择器 · 模拟', tags:'AVATAR-05 · 13', spec:'模拟 Android/iOS 系统单选照片选择器：点击任一图片立即回传进入调整页；返回回查看页且原头像不变；仅单选静态图片，不申请全相册权限（需求 §3.5/§6）。', logged:true, avatar:'custom', init:'picker'},
+  {id:'f8', title:'系统相机 · 模拟', tags:'AVATAR-04 · 13', spec:'模拟系统相机：快门拍静态照片后带拍摄画面进入调整页；取消/失败/返回回查看页且原头像不变；仅拍静态图、不请求麦克风、不预请求权限（需求 §3.4/§6）。', logged:true, avatar:'custom', init:'camera'},
+];
+
+function frameHTML(f){
+  return `<div class="frame-block">
+    <div class="phone-wrap"><div class="phone" id="phone-${f.id}" data-state="profile" data-avatar="${f.avatar}" data-logged="${f.logged}" data-init="${f.init}" data-avatar-init="${f.avatar}" data-photo="portrait">
+      <div class="statusbar"><span class="t-lm">10:08</span>${STATUS}</div>
+      ${screenProfile(f)}
+      ${screenViewer()}
+      ${screenPicker()}
+      ${screenCamera()}
+      ${screenAdjust()}
+      ${sheetLayer()}
+    </div></div>
+    <div class="frame-caption">
+      <span class="cap-title">${f.title}</span><span class="cap-tags">${f.tags}</span>
+      <p>${f.spec}</p>
+    </div>
+  </div>`;
+}
+document.querySelectorAll('.frames').forEach(slot=>{
+  slot.innerHTML = slot.dataset.frames.split(',').map(id=>{
+    const f = FRAMES.find(x=>x.id===id.trim());
+    return frameHTML(f);
+  }).join('');
+});
+
+/* ================= 状态机与交互 =================
+   头像状态分离（对应需求“未点击完成即不修改”）：
+   - 已生效头像 committedAvatar = data-photo，驱动查看页/个人中心；
+   - 候选图片 candidateImage = data-candidate，只驱动调整页画布；
+   - 仅「完成」模拟持久化成功后原子提交；取消/返回/失败一律丢弃候选。 */
+function setState(phone, state){
+  phone.dataset.state = state;
+  phone.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const sel = {profile:'.scr-profile', viewer:'.scr-viewer', sheet:'.scr-viewer', picker:'.scr-picker', camera:'.scr-camera', adjust:'.scr-adjust'}[state];
+  phone.querySelector(sel).classList.add('active');
+  const sheetOpen = state==='sheet';
+  phone.querySelector('.sheet-layer').classList.toggle('open', sheetOpen);
+  if(state!=='adjust'){ phone.querySelector('.scr-adjust').classList.remove('processing'); }
+  if(state!=='sheet' && !phone.querySelector('.dialog-layer').classList.contains('open')){
+    const more = phone.querySelector('[data-action="open-sheet"]');
+    if(more && phone.contains(document.activeElement)) more.focus();
+  }
+  if(sheetOpen){
+    const first = phone.querySelector('.sheet-item');
+    if(first) first.focus();
+  }
+}
+function showSnackbar(phone, text){
+  const sb = phone.querySelector('.snackbar');
+  sb.textContent = text; sb.classList.add('show');
+  clearTimeout(sb._t); sb._t = setTimeout(()=>sb.classList.remove('show'), 2200);
+}
+function setCanvasPhoto(phone, id){
+  const use = phone.querySelector('.canvas-photo .ph-use');
+  if(use) use.setAttribute('href', hrefOf(id));
+}
+function commitAvatar(phone, id){
+  phone.dataset.photo = id;
+  phone.dataset.candidate = '';
+  phone.querySelectorAll('.avatar-photo .ph-use, .viewer-photo .ph-use, .canvas-photo .ph-use')
+    .forEach(u=>u.setAttribute('href', hrefOf(id)));
+}
+function openDialog(phone){
+  phone.querySelector('.dialog-layer').classList.add('open');
+  const btn = phone.querySelector('.dialog-actions .tb-btn');
+  if(btn) btn.focus();
+}
+function closeDialog(phone){
+  phone.querySelector('.dialog-layer').classList.remove('open');
+}
+
+document.querySelectorAll('.phone').forEach(p=>{
+  p.dataset.candidate = '';
+  setState(p, p.dataset.init);
+});
+
+let failMode = 'none';
+document.addEventListener('click', e=>{
+  const el = e.target.closest('[data-action]');
+  if(!el) return;
+  const phone = el.closest('.phone'); if(!phone) return;
+  const action = el.dataset.action;
+  if(action==='open-viewer') setState(phone,'viewer');
+  else if(action==='back-profile') setState(phone,'profile');
+  else if(action==='open-sheet') setState(phone,'sheet');
+  else if(action==='close-sheet') setState(phone,'viewer');
+  else if(action==='to-picker') setState(phone,'picker');
+  else if(action==='picker-back') setState(phone,'viewer');
+  else if(action==='to-camera'){
+    if(failMode==='perm'){ openDialog(phone); }
+    else { setState(phone,'camera'); }
+  }
+  else if(action==='camera-back') setState(phone,'viewer');
+  else if(action==='capture'){
+    phone.dataset.candidate = 'mountain';
+    setCanvasPhoto(phone, 'mountain');
+    setState(phone,'adjust');
+  }
+  else if(action==='pick'){
+    const id = el.dataset.photo || 'portrait';
+    phone.dataset.candidate = id;
+    setCanvasPhoto(phone, id);
+    setState(phone,'adjust');
+  }
+  else if(action==='adjust-cancel'){
+    setCanvasPhoto(phone, phone.dataset.photo);
+    phone.dataset.candidate = '';
+    setState(phone,'viewer');
+  }
+  else if(action==='adjust-done'){
+    const adj = phone.querySelector('.scr-adjust');
+    adj.classList.add('processing');
+    setTimeout(()=>{
+      if(!phone.isConnected) return;
+      adj.classList.remove('processing');
+      if(failMode==='write'){
+        showSnackbar(phone,'头像保存失败，请重试');
+        return;
+      }
+      phone.dataset.avatar = 'custom';
+      commitAvatar(phone, phone.dataset.candidate || phone.dataset.photo);
+      setState(phone,'viewer');
+    }, 900);
+  }
+  else if(action==='save-phone'){
+    setState(phone,'viewer');
+    if(failMode==='perm') showSnackbar(phone,'未获得相册写入权限，头像未保存');
+    else if(failMode==='write') showSnackbar(phone,'头像保存失败，请重试');
+    else showSnackbar(phone,'头像已保存到相册');
+  }
+  else if(action==='dialog-dismiss') closeDialog(phone);
+  else if(action==='dialog-settings'){ closeDialog(phone); showSnackbar(phone,'已打开系统设置页（演示）'); }
+});
+
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Escape') return;
+  document.querySelectorAll('.phone').forEach(p=>{
+    const dlg = p.querySelector('.dialog-layer');
+    if(dlg.classList.contains('open')){ closeDialog(p); return; }
+    const sheet = p.querySelector('.sheet-layer');
+    if(sheet.classList.contains('open')) setState(p,'viewer');
+  });
+});
+
+document.getElementById('w-seg').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  document.documentElement.style.setProperty('--fw', b.dataset.w + 'px');
+});
+document.getElementById('fail-seg').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  failMode = b.dataset.fail;
+});
+document.getElementById('safe-seg').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  document.body.classList.toggle('safe-demo', b.dataset.safe==='on');
+});
+
+document.getElementById('reset').addEventListener('click', ()=>{
+  document.querySelectorAll('.phone').forEach(p=>{
+    p.dataset.avatar = p.dataset.avatarInit;
+    p.dataset.photo = 'portrait';
+    p.dataset.candidate = '';
+    p.querySelectorAll('.avatar-photo .ph-use, .viewer-photo .ph-use, .canvas-photo .ph-use')
+      .forEach(u=>u.setAttribute('href', hrefOf('portrait')));
+    p.querySelectorAll('.thumb').forEach(t=>{
+      const u = t.querySelector('.ph-use');
+      if(u) u.setAttribute('href', hrefOf(t.dataset.photo || 'portrait'));
+    });
+    p.querySelector('.scr-adjust').classList.remove('processing');
+    closeDialog(p);
+    setState(p, p.dataset.init);
+  });
+});
+
+apply();
+</script>
+</body>
+</html>

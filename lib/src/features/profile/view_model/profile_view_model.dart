@@ -5,6 +5,7 @@ import 'package:wanandroid_flutter/src/core/result/data_result.dart';
 import 'package:wanandroid_flutter/src/core/theme/theme_controller.dart';
 import 'package:wanandroid_flutter/src/core/theme/wan_theme.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/auth_repository.dart';
+import 'package:wanandroid_flutter/src/data/repository/contract/avatar_repository.dart';
 
 final NotifierProvider<ProfileViewModel, ProfileUiState>
 profileViewModelProvider = NotifierProvider<ProfileViewModel, ProfileUiState>(
@@ -16,6 +17,7 @@ class ProfileUiState {
     required this.auth,
     required this.palette,
     required this.mode,
+    required this.avatar,
     this.loggingOut = false,
     this.logoutNotice,
   });
@@ -23,13 +25,18 @@ class ProfileUiState {
   final AuthStateView auth;
   final WanPalette palette;
   final ThemeMode mode;
+  final AvatarStateView avatar;
   final bool loggingOut;
   final String? logoutNotice;
+
+  /// 已登录且会话已验证时头像区可点（进入查看页/编辑流程）。
+  bool get avatarEditable => avatar.editable;
 
   ProfileUiState copyWith({
     AuthStateView? auth,
     WanPalette? palette,
     ThemeMode? mode,
+    AvatarStateView? avatar,
     bool? loggingOut,
     String? logoutNotice,
     bool clearLogoutNotice = false,
@@ -37,6 +44,7 @@ class ProfileUiState {
     auth: auth ?? this.auth,
     palette: palette ?? this.palette,
     mode: mode ?? this.mode,
+    avatar: avatar ?? this.avatar,
     loggingOut: loggingOut ?? this.loggingOut,
     logoutNotice: clearLogoutNotice ? null : logoutNotice ?? this.logoutNotice,
   );
@@ -45,6 +53,7 @@ class ProfileUiState {
 class ProfileViewModel extends Notifier<ProfileUiState> {
   late final AuthRepository _authRepository;
   late final ThemeController _themeController;
+  late final AvatarRepository _avatarRepository;
   bool _active = true;
 
   @override
@@ -52,17 +61,21 @@ class ProfileViewModel extends Notifier<ProfileUiState> {
     _active = true;
     _authRepository = ref.read(authRepositoryProvider);
     _themeController = ref.read(themeControllerProvider);
+    _avatarRepository = ref.read(avatarRepositoryProvider);
     _authRepository.addListener(_publishAuth);
     _themeController.addListener(_publishTheme);
+    _avatarRepository.addListener(_publishAvatar);
     ref.onDispose(() {
       _active = false;
       _authRepository.removeListener(_publishAuth);
       _themeController.removeListener(_publishTheme);
+      _avatarRepository.removeListener(_publishAvatar);
     });
     return ProfileUiState(
       auth: _authRepository.view(),
       palette: _themeController.palette,
       mode: _themeController.mode,
+      avatar: _avatarRepository.view(),
     );
   }
 
@@ -92,5 +105,10 @@ class ProfileViewModel extends Notifier<ProfileUiState> {
       palette: _themeController.palette,
       mode: _themeController.mode,
     );
+  }
+
+  void _publishAvatar() {
+    if (!_active) return;
+    state = state.copyWith(avatar: _avatarRepository.view());
   }
 }
