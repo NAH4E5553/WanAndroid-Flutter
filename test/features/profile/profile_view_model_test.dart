@@ -11,6 +11,8 @@ import 'package:wanandroid_flutter/src/core/theme/wan_theme.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/auth_repository.dart';
 import 'package:wanandroid_flutter/src/features/profile/view_model/profile_view_model.dart';
 
+import '../../support/fake_avatar_dependencies.dart';
+
 void main() {
   test(
     'profile view model owns auth, theme and logout repository access',
@@ -23,6 +25,7 @@ void main() {
       final ProviderContainer container = ProviderContainer(
         overrides: [
           authRepositoryProvider.overrideWithValue(auth),
+          avatarRepositoryProvider.overrideWithValue(FakeAvatarRepository()),
           themeControllerProvider.overrideWithValue(theme),
         ],
       );

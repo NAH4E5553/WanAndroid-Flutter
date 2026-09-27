@@ -34,6 +34,8 @@ final class DefaultAuthRepository implements AuthRepository {
           snapshot.notice == SessionNotice.expired && !snapshot.authenticated,
       storageNotice: snapshot.notice == SessionNotice.storageError,
       displayName: snapshot.user?.displayName,
+      userId: snapshot.user?.id,
+      accountVersionKey: _sessions.authenticatedVersionKey(),
     );
   }
 

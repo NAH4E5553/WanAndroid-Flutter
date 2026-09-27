@@ -4,6 +4,7 @@ import 'package:wanandroid_flutter/src/core/theme/theme_controller.dart';
 import 'package:wanandroid_flutter/src/core/theme/theme_storage.dart';
 import 'package:wanandroid_flutter/src/core/theme/wan_theme.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/auth_repository.dart';
+import 'package:wanandroid_flutter/src/data/repository/contract/avatar_repository.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/collection_repository.dart';
 
 /// Contract-level providers for the app layer and Feature ViewModels.
@@ -16,6 +17,10 @@ final authRepositoryProvider = Provider<AuthRepository>(
 
 final collectionRepositoryProvider = Provider<CollectionRepository>(
   (ref) => throw StateError('Collection repository is not configured'),
+);
+
+final avatarRepositoryProvider = Provider<AvatarRepository>(
+  (ref) => throw StateError('Avatar repository is not configured'),
 );
 
 /// The theme controller only needs core-level storage, so a working in-memory

@@ -23,6 +23,8 @@ class AuthStateView {
     required this.expiredNotice,
     required this.storageNotice,
     required this.displayName,
+    this.userId,
+    this.accountVersionKey,
   });
 
   final bool loading;
@@ -31,6 +33,16 @@ class AuthStateView {
   final bool expiredNotice;
   final bool storageNotice;
   final String? displayName;
+
+  /// Server-stable account id for local per-account facts (e.g. the local
+  /// avatar). Null when no account is attached.
+  final int? userId;
+
+  /// Opaque non-credential operation identity for the verified login. Changes
+  /// on every login/detach and is never reused across process restarts, so
+  /// callers must treat it as "current operation identity", not a durable
+  /// account key. Null while unverified.
+  final String? accountVersionKey;
 }
 
 abstract interface class AuthRepository {

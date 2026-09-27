@@ -11,7 +11,13 @@ import 'package:wanandroid_flutter/src/data/network/session/session_store.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/auth_repository.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/collection_repository.dart';
 import 'package:wanandroid_flutter/src/data/repository/implementation/default_auth_repository.dart';
+import 'package:wanandroid_flutter/src/data/repository/implementation/default_avatar_repository.dart';
 import 'package:wanandroid_flutter/src/data/repository/implementation/default_collection_repository.dart';
+import 'package:wanandroid_flutter/src/data/storage/avatar_file_storage.dart';
+import 'package:wanandroid_flutter/src/data/storage/avatar_gallery_gateway.dart';
+import 'package:wanandroid_flutter/src/data/storage/avatar_image_normalization_gateway.dart';
+import 'package:wanandroid_flutter/src/data/storage/avatar_image_processor.dart';
+import 'package:wanandroid_flutter/src/data/storage/avatar_image_source_gateway.dart';
 import 'package:wanandroid_flutter/src/data/storage/secure_session_storage.dart';
 import 'package:wanandroid_flutter/src/data/storage/theme_preferences.dart';
 
@@ -34,12 +40,27 @@ AppDependencies buildAppDependencies({ThemeStorage? themePreferences}) {
         source: DefaultCollectionNetworkDataSource(service),
         sessions: sessionStore,
       );
-  return AppDependencies(
-    authRepository: DefaultAuthRepository(
-      sessionStore: sessionStore,
-      source: DefaultAuthNetworkDataSource(service),
-      coordinator: sessionCoordinator,
+  final DefaultAuthRepository authRepository = DefaultAuthRepository(
+    sessionStore: sessionStore,
+    source: DefaultAuthNetworkDataSource(service),
+    coordinator: sessionCoordinator,
+  );
+  final ChannelAvatarGalleryGateway avatarGalleryGateway =
+      ChannelAvatarGalleryGateway();
+  final DefaultAvatarRepository avatarRepository = DefaultAvatarRepository(
+    authRepository: authRepository,
+    sourceGateway: ImagePickerAvatarImageSourceGateway(),
+    galleryGateway: avatarGalleryGateway,
+    normalizationGateway: const ChannelAvatarImageNormalizationGateway(),
+    processor: const UiAvatarImageProcessor(),
+    storage: AvatarFileStorage(
+      directories: const PathProviderAvatarDirectories(),
+      excludeFromBackup: avatarGalleryGateway.excludeFromBackup,
     ),
+  );
+  return AppDependencies(
+    avatarRepository: avatarRepository,
+    authRepository: authRepository,
     collectionRepository: collectionRepository,
     network: network,
     themeController: ThemeController(
@@ -50,12 +71,14 @@ AppDependencies buildAppDependencies({ThemeStorage? themePreferences}) {
 
 class AppDependencies {
   const AppDependencies({
+    required this.avatarRepository,
     required this.authRepository,
     required this.collectionRepository,
     required this.network,
     required this.themeController,
   });
 
+  final DefaultAvatarRepository avatarRepository;
   final AuthRepository authRepository;
   final CollectionRepository collectionRepository;
   final ArticleNetworkDataSource network;

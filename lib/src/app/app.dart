@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanandroid_flutter/src/app/router/app_router.dart';
+import 'package:wanandroid_flutter/src/app/router/app_routes.dart';
 import 'package:wanandroid_flutter/src/app/router/branch_restoration_controller.dart';
 import 'package:wanandroid_flutter/src/core/navigation/branch_stack_snapshot.dart';
 import 'package:wanandroid_flutter/src/core/providers.dart';
 import 'package:wanandroid_flutter/src/core/theme/theme_controller.dart';
 import 'package:wanandroid_flutter/src/core/theme/wan_theme.dart';
+import 'package:wanandroid_flutter/src/data/repository/contract/avatar_repository.dart';
 
 class WanAndroidApp extends StatelessWidget {
   const WanAndroidApp({super.key});
@@ -38,6 +40,8 @@ class _RestorableWanAndroidAppState
   @override
   String get restorationId => 'wanandroid-app-state';
 
+  AvatarRepository? _avatarRepository;
+
   @override
   void initState() {
     super.initState();
@@ -46,6 +50,30 @@ class _RestorableWanAndroidAppState
     _restorableSnapshot = RestorableBranchStackSnapshot(
       BranchStackSnapshot.initial(),
     );
+    // 进程恢复：仓储完成归属校验（recoveryReady）后导航到调整页。
+    _avatarRepository = ref.read(avatarRepositoryProvider);
+    _avatarRepository!.addListener(_navigateToRecoveredAvatar);
+    if (_avatarRepository!.view().recoveryReady) {
+      _navigateToRecoveredAvatar();
+    }
+  }
+
+  void _navigateToRecoveredAvatar() {
+    if (!mounted || !_avatarRepository!.view().recoveryReady) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((Duration _) {
+      if (!mounted || !_avatarRepository!.view().recoveryReady) {
+        return;
+      }
+      final String location = AvatarAdjustRouteData(
+        routeInstanceId: _branchController.nextRouteInstanceId(),
+      ).location;
+      _branchController.push(2, location);
+      unawaited(_appRouter.router.push(location));
+      // 导航已接管恢复候选；由调整页的既有取消/完成流程收尾。
+      _avatarRepository!.markRecoveryConsumed();
+    });
   }
 
   @override
@@ -88,6 +116,7 @@ class _RestorableWanAndroidAppState
 
   @override
   void dispose() {
+    _avatarRepository?.removeListener(_navigateToRecoveredAvatar);
     if (_listening) {
       _branchController.removeListener(_saveSnapshot);
     }

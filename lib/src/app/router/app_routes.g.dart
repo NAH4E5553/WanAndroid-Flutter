@@ -120,6 +120,16 @@ RouteBase get $mainShellRouteData => StatefulShellRouteData.$route(
               hasOverriddenOnExit: false,
               factory: $ThemeSettingsRouteData._fromState,
             ),
+            GoRouteData.$route(
+              path: 'avatar',
+              hasOverriddenOnExit: false,
+              factory: $AvatarViewerRouteData._fromState,
+            ),
+            GoRouteData.$route(
+              path: 'avatar/adjust',
+              hasOverriddenOnExit: false,
+              factory: $AvatarAdjustRouteData._fromState,
+            ),
           ],
         ),
       ],
@@ -465,6 +475,62 @@ mixin $ThemeSettingsRouteData on GoRouteData {
   @override
   String get location => GoRouteData.$location(
     '/profile/theme',
+    queryParams: {'route-instance-id': _self.routeInstanceId},
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $AvatarViewerRouteData on GoRouteData {
+  static AvatarViewerRouteData _fromState(GoRouterState state) =>
+      AvatarViewerRouteData(
+        routeInstanceId: state.uri.queryParameters['route-instance-id']!,
+      );
+
+  AvatarViewerRouteData get _self => this as AvatarViewerRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/profile/avatar',
+    queryParams: {'route-instance-id': _self.routeInstanceId},
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $AvatarAdjustRouteData on GoRouteData {
+  static AvatarAdjustRouteData _fromState(GoRouterState state) =>
+      AvatarAdjustRouteData(
+        routeInstanceId: state.uri.queryParameters['route-instance-id']!,
+      );
+
+  AvatarAdjustRouteData get _self => this as AvatarAdjustRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/profile/avatar/adjust',
     queryParams: {'route-instance-id': _self.routeInstanceId},
   );
 
