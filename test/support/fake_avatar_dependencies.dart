@@ -363,6 +363,7 @@ class FakeAvatarRepository extends ChangeNotifier implements AvatarRepository {
   AvatarGallerySaveStatus nextSaveStatus = AvatarGallerySaveStatus.success;
   int saveCalls = 0;
   int discardCalls = 0;
+  bool notifyOnDiscard = false;
 
   void emit(AvatarStateView view) {
     _view = view;
@@ -387,6 +388,9 @@ class FakeAvatarRepository extends ChangeNotifier implements AvatarRepository {
   @override
   void discardCandidate() {
     discardCalls += 1;
+    if (notifyOnDiscard) {
+      notifyListeners();
+    }
   }
 
   @override

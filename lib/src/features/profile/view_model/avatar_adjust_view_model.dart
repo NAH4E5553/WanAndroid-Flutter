@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanandroid_flutter/src/core/providers.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/auth_repository.dart';
@@ -50,7 +52,9 @@ class AvatarAdjustViewModel extends Notifier<AvatarAdjustState> {
       _active = false;
       _repository.removeListener(_publish);
       // 取消语义：离开调整页即丢弃候选，当前头像不变。
-      _repository.discardCandidate();
+      // Riverpod 禁止在 provider 生命周期回调内同步触发其他 provider
+      // 的状态写入；仓储通知延后到本轮销毁完成后再发送。
+      scheduleMicrotask(_repository.discardCandidate);
     });
     return _state();
   }

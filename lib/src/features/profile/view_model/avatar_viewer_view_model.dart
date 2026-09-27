@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanandroid_flutter/src/core/providers.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/auth_repository.dart';
@@ -50,7 +52,9 @@ class AvatarViewerViewModel extends Notifier<AvatarViewerState> {
       // The viewer owns the external picker round-trip. Leaving the route
       // invalidates that operation even when no candidate has been published
       // yet, so a late system result cannot open the adjust page afterwards.
-      _repository.discardCandidate();
+      // Defer repository notifications until Riverpod finishes this lifecycle
+      // callback; a synchronous notification may write another provider.
+      scheduleMicrotask(_repository.discardCandidate);
     });
     return _state();
   }

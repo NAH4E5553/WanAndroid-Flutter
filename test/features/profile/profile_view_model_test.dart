@@ -9,6 +9,7 @@ import 'package:wanandroid_flutter/src/core/theme/theme_controller.dart';
 import 'package:wanandroid_flutter/src/core/theme/theme_storage.dart';
 import 'package:wanandroid_flutter/src/core/theme/wan_theme.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/auth_repository.dart';
+import 'package:wanandroid_flutter/src/features/profile/view_model/avatar_adjust_view_model.dart';
 import 'package:wanandroid_flutter/src/features/profile/view_model/profile_view_model.dart';
 
 import '../../support/fake_avatar_dependencies.dart';
@@ -45,6 +46,43 @@ void main() {
       expect(subscription.read().logoutNotice, '本机已退出，服务器退出未确认。');
     },
   );
+
+  test('adjust disposal defers repository notifications outside Riverpod lifecycle', () async {
+    final _AuthFixture auth = _AuthFixture();
+    final ThemeController theme = ThemeController(
+      preferences: _MemoryThemeStorage(),
+    );
+    await theme.load();
+    final FakeAvatarRepository avatar = FakeAvatarRepository()
+      ..notifyOnDiscard = true;
+    final ProviderContainer container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(auth),
+        avatarRepositoryProvider.overrideWithValue(avatar),
+        themeControllerProvider.overrideWithValue(theme),
+      ],
+    );
+    addTearDown(container.dispose);
+    final ProviderSubscription<ProfileUiState> profile = container.listen(
+      profileViewModelProvider,
+      (_, _) {},
+      fireImmediately: true,
+    );
+    addTearDown(profile.close);
+    final ProviderSubscription<AvatarAdjustState> adjust = container.listen(
+      avatarAdjustViewModelProvider,
+      (_, _) {},
+      fireImmediately: true,
+    );
+
+    adjust.close();
+    await container.pump();
+    await Future<void>.delayed(Duration.zero);
+    await container.pump();
+
+    expect(avatar.discardCalls, 1);
+    expect(profile.read().avatar, same(avatar.view()));
+  });
 }
 
 final class _MemoryThemeStorage implements ThemeStorage {
