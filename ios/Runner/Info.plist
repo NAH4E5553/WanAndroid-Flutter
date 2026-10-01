@@ -26,8 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>NSCameraUsageDescription</key>
 	<string>需要使用相机拍摄照片作为头像；仅在你选择「拍照」时使用。</string>
+	<key>PHPhotoLibraryPreventAutomaticLimitedAccessAlert</key>
+	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>用于从系统相册选择一张图片作为头像；只访问你选择的图片。</string>
+	<string>展示相册和照片供你选择头像</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>用于将头像保存到系统相册；只添加新照片，不读取相册内容。</string>
 	<key>LSRequiresIPhoneOS</key>

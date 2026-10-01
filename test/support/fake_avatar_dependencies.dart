@@ -359,6 +359,12 @@ class FakeAvatarRepository extends ChangeNotifier implements AvatarRepository {
             recoveryReady: false,
           );
 
+  @override
+  Future<AvatarCandidateStart> importCandidate({
+    required AvatarImportedImage image,
+    required AvatarIdentity identity,
+  }) async => const AvatarCandidateStart.failed();
+
   AvatarStateView _view;
   AvatarGallerySaveStatus nextSaveStatus = AvatarGallerySaveStatus.success;
   int saveCalls = 0;

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +12,63 @@ import 'package:wanandroid_flutter/src/model/avatar.dart';
 import '../support/fake_avatar_dependencies.dart';
 
 void main() {
+  Future<AvatarImportedImage> imported(Harness h) async {
+    final bytes = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=',
+    );
+    await File(h.externalSourcePath).writeAsBytes(bytes);
+    return AvatarImportedImage(
+      path: h.externalSourcePath,
+      bytes: bytes.length,
+      width: 1,
+      height: 1,
+    );
+  }
+
+  test('相册PNG导入复制为候选，不重复方向归一、不删租约源文件、不写pending', () async {
+    final h = await Harness.setup();
+    final image = await imported(h);
+    final result = await h.repository.importCandidate(
+      image: image,
+      identity: h.identityA,
+    );
+    expect(result.status, AvatarCandidateStartStatus.ready);
+    expect(result.candidatePath, isNot(image.path));
+    expect(h.normalizationGateway.calls, 0);
+    expect(File(image.path).existsSync(), true);
+    expect(h.repository.hasPendingOperation(), false);
+  });
+  test('相册导入校验等待期间切号，迟到结果不能发布到新账号', () async {
+    final h = await Harness.setup();
+    final image = await imported(h);
+    h.processor.ensureGate = Completer<void>();
+    final pending = h.repository.importCandidate(
+      image: image,
+      identity: h.identityA,
+    );
+    await h.processor.ensureStarted.future;
+    h.auth.loginAs(2);
+    h.processor.ensureGate!.complete();
+    expect((await pending).status, isNot(AvatarCandidateStartStatus.ready));
+    expect(h.repository.view().candidateReady, false);
+    expect(File(image.path).existsSync(), true);
+  });
+  test('相册导出描述与PNG头部不一致，不接纳候选', () async {
+    final h = await Harness.setup();
+    final image = await imported(h);
+    final result = await h.repository.importCandidate(
+      image: AvatarImportedImage(
+        path: image.path,
+        bytes: image.bytes,
+        width: 2,
+        height: 1,
+      ),
+      identity: h.identityA,
+    );
+    expect(result.status, AvatarCandidateStartStatus.failed);
+    expect(h.repository.view().candidateReady, false);
+  });
+
   test('取消候选后索引与当前头像不变，重启后仍为默认', () async {
     final Harness harness = await Harness.setup();
     await harness.repository.startCandidate(

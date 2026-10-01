@@ -80,3 +80,8 @@ OCR 准备脚本只下载 Alibaba OpenCodeReview 固定提交的两个公开文�
 3. 删除 `flushResponseCookies` 后 SESSION-01 行为测试应失败。
 
 门禁不能让上述已知错误变红时，不得以“检查已接入”宣称有效。
+
+
+### 相册独立包增量门禁
+
+packages/album_picker由根架构/敏感数据检查扫描，并单独运行analyze/test。verify_pr的Android/iOS平台参数同时构建相应独立example。远端任务已增加包测试、原生有界写入/ImageIO探针和双端示例构建；远端CI尚未运行。真实PhotoKit专项仅可在新建专用模拟器运行：加入探针生成的两张合成图片、授权测试App，传入ALBUM_CONTROLLED_LIBRARY=true。不得对个人图库运行该专项；预置样图保留，实际导出仅匹配8×4/4×8受控图片。真实权限弹框、云端、厂商和性能另行验收。

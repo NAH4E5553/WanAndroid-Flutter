@@ -4,6 +4,10 @@ import 'verify_architecture.dart';
 
 void main() {
   final Map<String, String?> expectations = <String, String?>{
+    'portable_package_violation': 'FEATURE_DATA_IMPLEMENTATION',
+    'portable_package_pass': null,
+    'portable_example_host_violation': 'PORTABLE_HOST_DEPENDENCY',
+    'portable_example_pass': null,
     'direct_violation': 'FEATURE_DATA_IMPLEMENTATION',
     'relative_violation': 'FEATURE_DATA_IMPLEMENTATION',
     'barrel_violation': 'FEATURE_DATA_IMPLEMENTATION',

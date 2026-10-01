@@ -1,4 +1,5 @@
-import 'package:flutter/widgets.dart';
+import 'package:album_picker/album_picker.dart';
+import 'package:flutter/material.dart';
 import 'package:wanandroid_flutter/src/features/profile/view/avatar_adjust_screen.dart';
 import 'package:wanandroid_flutter/src/features/profile/view/avatar_viewer_screen.dart';
 import 'package:wanandroid_flutter/src/features/profile/view/collections_screen.dart';
@@ -24,7 +25,18 @@ Widget buildAvatarViewerScreen({
   required String routeKey,
   required VoidCallback onBack,
   required VoidCallback onAdjust,
-}) => AvatarViewerScreen(onBack: onBack, onAdjust: onAdjust);
+}) => Builder(
+  builder: (context) => AvatarViewerScreen(
+    onBack: onBack,
+    onAdjust: onAdjust,
+    onChooseAlbum: (cancellation) => showAlbumPicker(
+      context,
+      cancellation: cancellation,
+      budget: AlbumBudget.avatar,
+      theme: Theme.of(context),
+    ),
+  ),
+);
 
 Widget buildAvatarAdjustScreen({
   required String routeKey,

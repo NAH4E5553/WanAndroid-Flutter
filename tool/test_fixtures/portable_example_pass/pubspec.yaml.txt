@@ -1,0 +1,1 @@
+name: album_picker_example

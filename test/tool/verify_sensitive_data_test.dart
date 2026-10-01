@@ -6,6 +6,28 @@ import 'package:path/path.dart' as p;
 import '../../tool/verify_sensitive_data.dart';
 
 void main() {
+  test(
+    'nested package sources remain scanned while generated caches are excluded',
+    () {
+      final root = Directory.systemTemp.createTempSync('portable_privacy_');
+      addTearDown(() => root.deleteSync(recursive: true));
+      final generated = File(
+        '${root.path}/packages/example/.dart_tool/generated.dart',
+      );
+      final source = File('${root.path}/packages/example/lib/model.dart');
+      final syntheticBad = <String>['138', '1234', '5678'].join();
+      generated.parent.createSync(recursive: true);
+      generated.writeAsStringSync('final identity = "$syntheticBad";');
+      expect(SensitiveDataVerifier(root).verify().violations, isEmpty);
+      source.parent.createSync(recursive: true);
+      source.writeAsStringSync('final identity = "$syntheticBad";');
+      expect(
+        SensitiveDataVerifier(root).verify().violations.single.rule,
+        'REAL_IDENTITY_LITERAL',
+      );
+    },
+  );
+
   final Map<String, String?> expectations = <String, String?>{
     'sensitive_data_pass': null,
     'sensitive_data_phone_violation': 'REAL_IDENTITY_LITERAL',

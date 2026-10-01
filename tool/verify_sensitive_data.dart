@@ -134,7 +134,20 @@ class SensitiveDataVerifier {
       'third_party/',
       'tool/test_fixtures/',
     ];
-    return excludedPrefixes.any(relative.startsWith);
+    return excludedPrefixes.any(relative.startsWith) ||
+        (relative.startsWith('packages/') &&
+            relative
+                .split('/')
+                .any(
+                  (segment) => <String>{
+                    '.dart_tool',
+                    'build',
+                    '.gradle',
+                    '.swiftpm',
+                    'ephemeral',
+                    'Pods',
+                  }.contains(segment),
+                ));
   }
 
   bool _isAuthenticationSurface(String relative) =>
