@@ -90,6 +90,22 @@ Future<void> main(List<String> arguments) async {
       'analyze',
       '--no-pub',
     ]);
+    final Directory albumPackage = Directory(
+      '${root.path}/packages/album_picker',
+    );
+    if (albumPackage.existsSync()) {
+      final _Runner packageRunner = _Runner(
+        root: albumPackage,
+        dryRun: options.dryRun,
+      );
+      await packageRunner.run('Album package analyze', 'flutter', <String>[
+        'analyze',
+      ]);
+      await packageRunner.run('Album package tests', 'flutter', <String>[
+        'test',
+      ]);
+    }
+
     await runner.run('Unit and widget tests', 'flutter', <String>[
       'test',
       if (!options.quick) '--coverage',
@@ -142,6 +158,27 @@ Future<void> main(List<String> arguments) async {
         '--debug',
         '--no-pub',
       ]);
+    }
+
+    if (albumPackage.existsSync() && (options.android || options.ios)) {
+      final _Runner exampleRunner = _Runner(
+        root: Directory('${albumPackage.path}/example'),
+        dryRun: options.dryRun,
+      );
+      if (options.android) {
+        await exampleRunner.run(
+          'Independent album Android example',
+          'flutter',
+          <String>['build', 'apk', '--debug'],
+        );
+      }
+      if (options.ios) {
+        await exampleRunner.run(
+          'Independent album iOS example',
+          'flutter',
+          <String>['build', 'ios', '--simulator', '--debug'],
+        );
+      }
     }
 
     stdout.writeln(

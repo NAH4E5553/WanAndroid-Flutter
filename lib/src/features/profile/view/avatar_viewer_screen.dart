@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:album_picker/models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +18,7 @@ class AvatarViewerScreen extends ConsumerStatefulWidget {
   const AvatarViewerScreen({
     required this.onBack,
     required this.onAdjust,
+    this.onChooseAlbum,
     super.key,
   });
 
@@ -24,6 +26,7 @@ class AvatarViewerScreen extends ConsumerStatefulWidget {
 
   /// 选图/拍照成功后由导航层跳转到调整页。
   final VoidCallback onAdjust;
+  final Future<AlbumResult> Function(AlbumCancellation)? onChooseAlbum;
 
   @override
   ConsumerState<AvatarViewerScreen> createState() => _AvatarViewerScreenState();
@@ -113,9 +116,11 @@ class _AvatarViewerScreenState extends ConsumerState<AvatarViewerScreen>
   }
 
   Future<void> _startCandidate(AvatarSource source) async {
-    final AvatarViewerAction result = await ref
-        .read(avatarViewerViewModelProvider.notifier)
-        .startCandidate(source);
+    final model = ref.read(avatarViewerViewModelProvider.notifier);
+    final AvatarViewerAction result =
+        source == AvatarSource.gallery && widget.onChooseAlbum != null
+        ? await model.startAlbum(widget.onChooseAlbum!)
+        : await model.startCandidate(source);
     if (!mounted) {
       return;
     }

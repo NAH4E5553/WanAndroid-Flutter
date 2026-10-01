@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:album_picker/models.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanandroid_flutter/src/core/providers.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/auth_repository.dart';
@@ -37,6 +39,8 @@ class AvatarViewerViewModel extends Notifier<AvatarViewerState> {
   late final AvatarRepository _repository;
   late final AuthRepository _authRepository;
   bool _active = true;
+  AlbumCancellation? _albumCancellation;
+  AvatarIdentity? _albumIdentity;
 
   @override
   AvatarViewerState build() {
@@ -47,6 +51,7 @@ class AvatarViewerViewModel extends Notifier<AvatarViewerState> {
     _authRepository.addListener(_publish);
     ref.onDispose(() {
       _active = false;
+      _albumCancellation?.cancel();
       _repository.removeListener(_publish);
       _authRepository.removeListener(_publish);
       // The viewer owns the external picker round-trip. Leaving the route
@@ -77,7 +82,83 @@ class AvatarViewerViewModel extends Notifier<AvatarViewerState> {
 
   void _publish() {
     if (!_active) return;
+    final AvatarIdentity? current = _identity();
+    if (_albumIdentity != null &&
+        (current?.userId != _albumIdentity!.userId ||
+            current?.accountVersionKey != _albumIdentity!.accountVersionKey)) {
+      _albumCancellation?.cancel();
+    }
     state = _state();
+  }
+
+  Future<AvatarViewerAction> startAlbum(
+    Future<AlbumResult> Function(AlbumCancellation cancellation) show,
+  ) async {
+    if (_albumCancellation != null) return AvatarViewerAction.cancelled;
+    final AvatarIdentity? identity = _identity();
+    if (identity == null) return AvatarViewerAction.identityChanged;
+    final AlbumCancellation cancellation = AlbumCancellation();
+    _albumCancellation = cancellation;
+    _albumIdentity = identity;
+    AlbumFileLease? lease;
+    try {
+      final AlbumResult result = await show(cancellation);
+      lease = result.lease;
+      final AvatarIdentity? current = _identity();
+      if (!_active ||
+          cancellation.cancelled ||
+          current?.userId != identity.userId ||
+          current?.accountVersionKey != identity.accountVersionKey) {
+        return AvatarViewerAction.cancelled;
+      }
+      switch (result.kind) {
+        case AlbumResultKind.cameraRequested:
+          return await startCandidate(AvatarSource.camera);
+        case AlbumResultKind.systemPickerRequested:
+          return await startCandidate(AvatarSource.gallery);
+        case AlbumResultKind.cancelled:
+          return AvatarViewerAction.cancelled;
+        case AlbumResultKind.failed:
+          return AvatarViewerAction.failed;
+        case AlbumResultKind.selected:
+          if (lease == null ||
+              lease.contractVersion != 1 ||
+              !lease.upright ||
+              lease.mime != 'image/png' ||
+              lease.metadataPolicy != 'stripped') {
+            return AvatarViewerAction.failed;
+          }
+          final AvatarCandidateStart imported = await _repository
+              .importCandidate(
+                image: AvatarImportedImage(
+                  path: lease.path,
+                  bytes: lease.byteLength,
+                  width: lease.width,
+                  height: lease.height,
+                ),
+                identity: identity,
+              );
+          if (!_active || cancellation.cancelled) {
+            return AvatarViewerAction.cancelled;
+          }
+          return imported.status == AvatarCandidateStartStatus.ready
+              ? AvatarViewerAction.adjustReady
+              : imported.status == AvatarCandidateStartStatus.identityChanged
+              ? AvatarViewerAction.identityChanged
+              : AvatarViewerAction.failed;
+      }
+    } on Object {
+      return AvatarViewerAction.failed;
+    } finally {
+      try {
+        await lease?.release();
+      } on Object {
+        /* Package cleanup remains retryable. */
+      }
+      cancellation.cancel();
+      _albumCancellation = null;
+      _albumIdentity = null;
+    }
   }
 
   /// 拍照或相册选图：仓储打开系统页并在返回后校验身份；ready 时由页面导航

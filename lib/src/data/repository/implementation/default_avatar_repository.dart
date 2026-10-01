@@ -254,6 +254,102 @@ final class DefaultAvatarRepository implements AvatarRepository {
   }
 
   @override
+  Future<AvatarCandidateStart> importCandidate({
+    required AvatarImportedImage image,
+    required AvatarIdentity identity,
+  }) async {
+    if (!_identityMatches(identity)) {
+      return const AvatarCandidateStart.identityChanged();
+    }
+    if (_picking) return const AvatarCandidateStart.busy();
+    _picking = true;
+    discardCandidate();
+    final int session = ++_pickSession;
+    String? candidatePath;
+    try {
+      const int limit = UiAvatarImageProcessor.maxSourceFileBytes;
+      if (image.bytes <= 0 ||
+          image.bytes > limit ||
+          image.width <= 0 ||
+          image.height <= 0 ||
+          image.width > UiAvatarImageProcessor.maxSourceDimension ||
+          image.height > UiAvatarImageProcessor.maxSourceDimension ||
+          image.width * image.height >
+              UiAvatarImageProcessor.maxSourcePixelCount) {
+        return const AvatarCandidateStart.failed();
+      }
+      final File source = File(image.path);
+      if (await source.length() != image.bytes) {
+        return const AvatarCandidateStart.failed();
+      }
+      if (!_candidateOperationMatches(session, identity)) {
+        return _candidateStatusAfterWait(session, identity);
+      }
+      candidatePath = await _storage.newCandidateFilePath();
+      if (!_candidateOperationMatches(session, identity)) {
+        return _candidateStatusAfterWait(session, identity);
+      }
+      final RandomAccessFile output = await File(candidatePath)
+          .open(mode: FileMode.write);
+      int copied = 0;
+      try {
+        await for (final List<int> chunk in source.openRead()) {
+          if (!_candidateOperationMatches(session, identity)) {
+            return _candidateStatusAfterWait(session, identity);
+          }
+          copied += chunk.length;
+          if (copied > limit || copied > image.bytes) {
+            throw const AvatarDecodeException('oversized');
+          }
+          await output.writeFrom(chunk);
+        }
+        await output.flush();
+      } finally {
+        await output.close();
+      }
+      if (copied != image.bytes) return const AvatarCandidateStart.failed();
+      final RandomAccessFile input = await File(candidatePath).open();
+      final Uint8List header;
+      try {
+        header = await input.read(24);
+      } finally {
+        await input.close();
+      }
+      const List<int> png = <int>[137, 80, 78, 71, 13, 10, 26, 10];
+      if (header.length < 24 ||
+          List<int>.generate(8, (i) => header[i]).join(',') != png.join(',')) {
+        return const AvatarCandidateStart.failed();
+      }
+      final ByteData data = ByteData.sublistView(header);
+      if (data.getUint32(16) != image.width ||
+          data.getUint32(20) != image.height) {
+        return const AvatarCandidateStart.failed();
+      }
+      await _processor.ensureDecodable(
+        path: candidatePath,
+        maxDimension: UiAvatarImageProcessor.maxSourceDimension,
+        maxPixelCount: UiAvatarImageProcessor.maxSourcePixelCount,
+        maxFileBytes: limit,
+      );
+      if (!_candidateOperationMatches(session, identity)) {
+        return _candidateStatusAfterWait(session, identity);
+      }
+      _candidate = _Candidate(path: candidatePath, userId: identity.userId);
+      final String accepted = candidatePath;
+      candidatePath = null;
+      _notify();
+      return AvatarCandidateStart.ready(accepted);
+    } on Object {
+      return _candidateOperationMatches(session, identity)
+          ? const AvatarCandidateStart.failed()
+          : _candidateStatusAfterWait(session, identity);
+    } finally {
+      _cleanupQuietly(candidatePath);
+      _picking = false;
+    }
+  }
+
+  @override
   Future<AvatarCommitOutcome> commitCandidate({
     required AvatarIdentity identity,
     required AvatarCropParams params,

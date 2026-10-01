@@ -98,6 +98,13 @@ abstract interface class AvatarRepository {
     required AvatarIdentity identity,
   });
 
+  /// Imports an already upright, metadata-stripped PNG without a second EXIF
+  /// transform. Does not create an external-picker pending/lost-data record.
+  Future<AvatarCandidateStart> importCandidate({
+    required AvatarImportedImage image,
+    required AvatarIdentity identity,
+  });
+
   /// Runs the decode/transform/crop/encode pipeline for the current
   /// candidate and atomically commits it as the user's avatar. Any failure
   /// keeps the previous avatar and the persisted index unchanged.

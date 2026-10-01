@@ -4,7 +4,7 @@ void main(List<String> arguments) {
   final String root = arguments.isEmpty
       ? Directory.current.path
       : arguments.first;
-  final ArchitectureReport report = ArchitectureVerifier(root).verify();
+  final ArchitectureReport report = verifyArchitectureWorkspace(root);
   if (report.violations.isEmpty) {
     stdout.writeln(
       'Architecture check passed (${report.filesChecked} Dart files).',
@@ -18,15 +18,49 @@ void main(List<String> arguments) {
   exitCode = 1;
 }
 
+ArchitectureReport verifyArchitectureWorkspace(String root) {
+  final List<ArchitectureReport> reports = <ArchitectureReport>[
+    ArchitectureVerifier(root).verify(),
+  ];
+  final Directory packages = Directory('$root/packages');
+  if (packages.existsSync()) {
+    for (final Directory package
+        in packages.listSync().whereType<Directory>()) {
+      if (!File('${package.path}/pubspec.yaml').existsSync()) continue;
+      reports.add(ArchitectureVerifier(package.path).verify());
+      if (File('${package.path}/example/pubspec.yaml').existsSync()) {
+        reports.add(ArchitectureVerifier('${package.path}/example').verify());
+      }
+    }
+  }
+  return ArchitectureReport(
+    filesChecked: reports.fold(0, (sum, report) => sum + report.filesChecked),
+    violations: reports.expand((r) => r.violations).toList(),
+  );
+}
+
 class ArchitectureVerifier {
   ArchitectureVerifier(String root)
     : root = _normalize(Directory(root).absolute.path),
       sourceRoot = _normalize(
-        Directory(root).absolute.uri.resolve('lib/src/').toFilePath(),
+        Directory(root).absolute.uri
+            .resolve(
+              Directory('$root/lib/src').existsSync() ? 'lib/src/' : 'lib/',
+            )
+            .toFilePath(),
       );
 
   final String root;
   final String sourceRoot;
+  String get packageName {
+    final File manifest = File('$root/pubspec.yaml');
+    if (!manifest.existsSync()) return 'wanandroid_flutter';
+    return RegExp(
+          r'^name:\s*(\w+)',
+          multiLine: true,
+        ).firstMatch(manifest.readAsStringSync())?.group(1) ??
+        'wanandroid_flutter';
+  }
 
   ArchitectureReport verify() {
     final Directory directory = Directory(sourceRoot);
@@ -194,6 +228,10 @@ class ArchitectureVerifier {
   }
 
   String? _forbiddenExternalRule(String source, String uri) {
+    if (packageName != 'wanandroid_flutter' &&
+        uri.startsWith('package:wanandroid_flutter/')) {
+      return 'PORTABLE_HOST_DEPENDENCY';
+    }
     const Set<String> dataImplementationPackages = <String>{
       'package:dio/',
       'package:drift/',
@@ -239,8 +277,8 @@ class ArchitectureVerifier {
     if (uri.startsWith('dart:')) {
       return null;
     }
-    if (uri.startsWith('package:wanandroid_flutter/')) {
-      final String suffix = uri.substring('package:wanandroid_flutter/'.length);
+    if (uri.startsWith('package:$packageName/')) {
+      final String suffix = uri.substring('package:$packageName/'.length);
       return _normalize(
         Directory(root).uri.resolve('lib/$suffix').toFilePath(),
       );

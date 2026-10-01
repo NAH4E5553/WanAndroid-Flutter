@@ -198,3 +198,18 @@ class AvatarStateView {
   /// `AvatarRepository.markRecoveryConsumed`.
   final bool recoveryReady;
 }
+
+/// A direction-normalized PNG copy supplied by the portable picker.
+/// The caller owns and releases the external file; the repository only copies it.
+final class AvatarImportedImage {
+  const AvatarImportedImage({
+    required this.path,
+    required this.bytes,
+    required this.width,
+    required this.height,
+  });
+  final String path;
+  final int bytes;
+  final int width;
+  final int height;
+}

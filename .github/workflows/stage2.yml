@@ -78,6 +78,12 @@ jobs:
       - run: dart --packages=tool/standalone_package_config.json tool/verify_stage5.dart
       - run: flutter analyze
       - run: flutter test --coverage
+      - name: Verify independent album package
+        working-directory: packages/album_picker
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
 
   android-integration:
     name: Android Integration
@@ -148,6 +154,12 @@ jobs:
           cache-provider: basic
           cache-read-only: false
       - run: flutter build apk --debug --no-pub
+      - name: Verify Android bounded export writer
+        working-directory: android
+        run: ./gradlew :album_picker:testDebugUnitTest
+      - name: Build independent Android album example
+        working-directory: packages/album_picker/example
+        run: flutter build apk --debug
 
   ios-integration:
     name: iOS Integration
@@ -211,3 +223,11 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter build ios --simulator --debug --no-pub
+      - name: Verify ImageIO export contract with synthetic fixtures
+        run: |
+          mkdir -p build/album-probe
+          swiftc packages/album_picker/ios/album_picker/Sources/album_picker/ImageExport.swift packages/album_picker/tool/native_probe/main.swift -o build/album-probe/probe
+          build/album-probe/probe
+      - name: Build independent iOS album example
+        working-directory: packages/album_picker/example
+        run: flutter build ios --simulator --debug

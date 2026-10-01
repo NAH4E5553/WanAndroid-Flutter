@@ -1,0 +1,22 @@
+name: album_picker
+description: Portable, permission-aware single photo picker with bounded static exports.
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: ^3.13.3
+  flutter: '>=3.47.4'
+dependencies:
+  flutter:
+    sdk: flutter
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: dev.portable.album_picker
+        pluginClass: AlbumPickerPlugin
+      ios:
+        pluginClass: AlbumPickerPlugin
