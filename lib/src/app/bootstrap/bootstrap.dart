@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanandroid_flutter/src/app/app.dart';
 import 'package:wanandroid_flutter/src/app/bootstrap/app_dependencies.dart';
+import 'package:wanandroid_flutter/src/core/diagnostics/startup_metrics.dart';
 import 'package:wanandroid_flutter/src/core/providers.dart';
 import 'package:wanandroid_flutter/src/core/reader/reading_history_provider.dart';
 import 'package:wanandroid_flutter/src/data/database/reading_history_database.dart';
@@ -20,6 +21,8 @@ import 'package:wanandroid_flutter/src/features/topics/view_model/topics_depende
 
 void bootstrap() {
   WidgetsFlutterBinding.ensureInitialized();
+  StartupMetrics.instance.attach();
+  StartupMetrics.instance.mark('binding_ready');
   final AppDependencies dependencies = buildAppDependencies();
   unawaited(dependencies.themeController.load());
   // Public browsing does not wait for restore, but the avatar startup chain
@@ -27,6 +30,7 @@ void bootstrap() {
   // session restore both finish before lost picker data is consumed.
   unawaited(_initializeAndRecoverAvatar(dependencies));
   final ReadingHistoryDatabase historyDatabase = ReadingHistoryDatabase();
+  StartupMetrics.instance.mark('dependencies_ready');
   runApp(
     ProviderScope(
       retry: (int retryCount, Object error) => null,
@@ -67,6 +71,7 @@ void bootstrap() {
       child: const WanAndroidApp(),
     ),
   );
+  StartupMetrics.instance.mark('run_app');
 }
 
 /// Runs after the session restore finished: when a persisted pending avatar

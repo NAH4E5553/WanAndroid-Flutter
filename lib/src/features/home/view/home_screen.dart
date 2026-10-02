@@ -27,6 +27,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final HomeUiState state = ref.watch(homeViewModelProvider);
     final HomeViewModel viewModel = ref.read(homeViewModelProvider.notifier);
+    viewModel.reportStartupFrame(state);
     final PagedState<Article> articles = state.articles;
     if (articles.items.isEmpty && articles.isInitialLoading) {
       return const Center(child: CircularProgressIndicator());

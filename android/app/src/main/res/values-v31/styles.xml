@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API 31+：系统 SplashScreen 静态资源。背景与图标和 API 24–30 的
+     launch_background 及 Flutter 起始画面一致；系统入场/退出动画不做逐帧
+     承诺（见 STARTUP-02 开工单第5节）。 -->
+<resources>
+    <!-- Theme applied to the Android Window while the process is starting. -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowSplashScreenBackground">@color/launch_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/launch_splash_icon</item>
+    </style>
+</resources>

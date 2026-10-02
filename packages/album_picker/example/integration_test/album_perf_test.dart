@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math';
 
 import '../test/album_cell_membership.dart';
+import '../test/album_performance_metrics.dart';
 
 import 'package:album_picker/models.dart';
 import 'package:album_picker/src/data/repository/contract/album_repository.dart';
@@ -51,14 +52,17 @@ Future<void> until(
 /// Timing decorator over the production gateway. Adds no behaviour; records
 /// call durations so the real code path is measured end to end.
 final class MeasuredRepo implements AlbumRepository {
-  MeasuredRepo(this.native);
+  MeasuredRepo(this.native, {this.onTiming});
+  final void Function(String, int)? onTiming;
   final ChannelAlbumRepository native;
   final permissionMs = <int>[];
   final snapshotMs = <int>[];
   final thumbnailMs = <int>[];
 
   @override
-  Stream<void> get changes => native.changes;
+  Stream<void> get changes => native.changes.map((_) {
+    onTiming?.call('change', 0);
+  });
   @override
   Future<AlbumPermission> permission({bool request = false}) async {
     final sw = Stopwatch()..start();
@@ -66,6 +70,7 @@ final class MeasuredRepo implements AlbumRepository {
       return await native.permission(request: request);
     } finally {
       permissionMs.add(sw.elapsedMilliseconds);
+      onTiming?.call('permission', sw.elapsedMilliseconds);
     }
   }
 
@@ -76,6 +81,7 @@ final class MeasuredRepo implements AlbumRepository {
       return await native.snapshot();
     } finally {
       snapshotMs.add(sw.elapsedMilliseconds);
+      onTiming?.call('snapshot', sw.elapsedMilliseconds);
     }
   }
 
@@ -86,6 +92,7 @@ final class MeasuredRepo implements AlbumRepository {
       return await native.thumbnail(asset, size);
     } finally {
       thumbnailMs.add(sw.elapsedMilliseconds);
+      onTiming?.call('thumbnail', sw.elapsedMilliseconds);
     }
   }
 
@@ -122,23 +129,14 @@ Object describeList(List<int> values) => values.isEmpty
         'max': values.reduce(max),
       };
 
-/// Settled means no thumbnail request is still in flight (the loading
-/// placeholder is gone). Failed cells (retry icon) and not-local cells
-/// (cloud placeholder) are terminal states — they are recorded via
-/// brokenCells() as evidence instead of blocking the wait, because a real
-/// personal library can contain images whose thumbnails never succeed.
-bool firstScreenSettled({int minImages = 12}) =>
-    find.byIcon(Icons.image_outlined).evaluate().isEmpty &&
-    find.byType(Image).evaluate().length >= minImages;
-
-/// Album switches may target small personal groups with fewer cells than the
-/// first-screen minimum, so settling only requires that no request is in
-/// flight.
+/// Switch completion waits for visible requests; first-screen measurement
+/// separately requires decoded RawImages via albumFirstScreenReady.
 bool thumbsSettled() => find.byIcon(Icons.image_outlined).evaluate().isEmpty;
 
 int brokenCells() =>
     find.byIcon(Icons.refresh).evaluate().length +
-    find.byIcon(Icons.cloud_outlined).evaluate().length;
+    find.byIcon(Icons.cloud_outlined).evaluate().length +
+    find.byIcon(Icons.broken_image).evaluate().length;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -163,6 +161,9 @@ void main() {
     );
     // Owner-verified sweep of any rows carrying our fixture name prefixes
     // that are missing from the bookkeeping of this install.
+    evidence['metricsSchema'] = 2;
+    evidence['firstScreenDefinition'] =
+        'visible decoded RawImages or terminal placeholders';
     evidence['sweptOrphans'] = await fixture.invokeMethod<int>('sweepOrphans');
     if (cleanupOnly) {
       final remaining = await fixture.invokeMethod<int>('cleanup');
@@ -241,11 +242,12 @@ void main() {
     evidence['firstOpenMetadataMs'] = openSw.elapsedMilliseconds;
     await until(
       tester,
-      firstScreenSettled,
+      () => albumFirstScreenReady(tester),
       timeout: const Duration(seconds: 60),
     );
     evidence['firstOpenThumbsMs'] = openSw.elapsedMilliseconds;
     evidence['firstOpenBrokenCells'] = brokenCells();
+    evidence['firstOpenGrid'] = albumGridProgress(tester);
     evidence['memoryAfterFirstOpen'] = await fixture.invokeMethod<Object?>(
       'meminfo',
     );
@@ -254,6 +256,12 @@ void main() {
     final frames = <FrameTiming>[];
     void onTimings(List<FrameTiming> timings) => frames.addAll(timings);
     SchedulerBinding.instance.addTimingsCallback(onTimings);
+    addTearDown(
+      () => SchedulerBinding.instance.removeTimingsCallback(onTimings),
+    );
+    await tester.pump();
+    final frameStartUs =
+        SchedulerBinding.instance.currentSystemFrameTimeStamp.inMicroseconds;
     final scrollSw = Stopwatch()..start();
     var down = true;
     var lastMemory = Duration.zero;
@@ -273,25 +281,23 @@ void main() {
         memorySamples.add(await fixture.invokeMethod<Object?>('meminfo'));
       }
     }
+    await tester.pump();
+    final frameEndUs =
+        SchedulerBinding.instance.currentSystemFrameTimeStamp.inMicroseconds;
+    // Profile timing batches can arrive up to one second later. Keep the
+    // callback installed while draining, then filter by the vsync window.
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 1200)),
+    );
     SchedulerBinding.instance.removeTimingsCallback(onTimings);
     evidence['scrollMemorySamples'] = memorySamples;
-    final spans =
-        frames.map((f) => f.totalSpan.inMicroseconds / 1000.0).toList()..sort();
-    final over16 = spans.where((ms) => ms > 16.7).length;
-    final over33 = spans.where((ms) => ms > 33.3).length;
-    evidence['scrollFrames'] = {
-      'total': frames.length,
-      'p50Ms': spans.isEmpty ? 0 : spans[spans.length ~/ 2],
-      'p90Ms': spans.isEmpty
-          ? 0
-          : spans[(spans.length * 0.90).floor().clamp(0, spans.length - 1)],
-      'p99Ms': spans.isEmpty
-          ? 0
-          : spans[(spans.length * 0.99).floor().clamp(0, spans.length - 1)],
-      'maxMs': spans.isEmpty ? 0.0 : spans.last,
-      'over16_7Ratio': frames.isEmpty ? 0.0 : over16 / frames.length,
-      'over33_3Ratio': frames.isEmpty ? 0.0 : over33 / frames.length,
-    };
+    evidence['scrollFramesV2'] = summarizeAlbumFrames(
+      frames,
+      startUs: frameStartUs,
+      endUs: frameEndUs,
+      refreshRate: tester.view.display.refreshRate,
+    );
+    expect((evidence['scrollFramesV2'] as Map)['samples'], greaterThan(0));
     evidence['scrollBrokenCells'] = brokenCells();
     evidence['thumbnailMs'] = describeList(repo.thumbnailMs);
     evidence['thumbnailCount'] = repo.thumbnailMs.length;
@@ -434,7 +440,7 @@ void main() {
       await until(tester, () => !vm.state.loading);
       await until(
         tester,
-        firstScreenSettled,
+        () => albumFirstScreenReady(tester),
         timeout: const Duration(seconds: 60),
       );
       openMs.add(sw.elapsedMilliseconds);

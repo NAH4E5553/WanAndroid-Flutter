@@ -1,9 +1,10 @@
 import 'dart:async';
+import 'dart:ui';
 
-import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wanandroid_flutter/src/core/cancellation/request_cancellation.dart';
+import 'package:wanandroid_flutter/src/core/diagnostics/startup_metrics.dart';
 import 'package:wanandroid_flutter/src/core/platform/app_visibility.dart';
 import 'package:wanandroid_flutter/src/core/result/data_result.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/article_repository.dart';
@@ -14,6 +15,93 @@ import 'package:wanandroid_flutter/src/model/article.dart';
 import 'package:wanandroid_flutter/src/model/page_result.dart';
 
 void main() {
+  for (final String outcome in <String>['success', 'empty', 'error']) {
+    testWidgets('startup requires both rendered resources: $outcome', (
+      tester,
+    ) async {
+      final StartupMetrics previous = StartupMetrics.instance;
+      int clock = 100;
+      final List<Map<String, Object>> events = <Map<String, Object>>[];
+      final StartupMetrics metrics = StartupMetrics(
+        enabled: true,
+        clock: () => clock,
+        emit: events.add,
+      )..start();
+      StartupMetrics.instance = metrics;
+      addTearDown(() => StartupMetrics.instance = previous);
+      final _ControlledArticleRepository repository =
+          _ControlledArticleRepository();
+      final ProviderContainer container = ProviderContainer(
+        overrides: [articleRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+      final subscription = container.listen(homeViewModelProvider, (_, _) {});
+      addTearDown(subscription.close);
+      await tester.pump();
+      final HomeViewModel vm = container.read(homeViewModelProvider.notifier);
+      Future<void> render() async {
+        clock += 100;
+        final int begin = clock;
+        vm.reportStartupFrame(container.read(homeViewModelProvider));
+        tester.binding.scheduleFrame();
+        await tester.pump();
+        clock += 50;
+        metrics.recordTimings(<FrameTiming>[
+          FrameTiming(
+            vsyncStart: begin - 2,
+            buildStart: begin - 1,
+            buildFinish: begin + 1,
+            rasterStart: begin + 2,
+            rasterFinish: begin + 10,
+            rasterFinishWallTime: begin + 10,
+          ),
+        ]);
+      }
+
+      await render();
+      expect(
+        events.where((e) => e['point'] == 'home_articles_raster'),
+        isEmpty,
+      );
+      repository.articleRequests.single.complete(
+        DataSuccess<PageResult<Article>>(
+          PageResult<Article>(items: <Article>[_article], nextPage: null),
+        ),
+      );
+      await tester.pump();
+      await render();
+      expect(
+        events.where((e) => e['point'] == 'home_articles_raster'),
+        hasLength(1),
+      );
+      expect(events.where((e) => e['point'] == 'home_content_raster'), isEmpty);
+      repository.questionRequests.single.complete(
+        outcome == 'error'
+            ? const DataFailure<List<Article>>(DataError.network)
+            : DataSuccess<List<Article>>(
+                outcome == 'empty' ? <Article>[] : <Article>[_question],
+              ),
+      );
+      await tester.pump();
+      await render();
+      expect(
+        events.singleWhere(
+          (e) => e['point'] == 'home_terminal_raster',
+        )['outcome'],
+        outcome,
+      );
+      expect(
+        events.where((e) => e['point'] == 'home_content_raster'),
+        outcome == 'error' ? isEmpty : hasLength(1),
+      );
+      await render();
+      expect(
+        events.where((e) => e['point'] == 'home_terminal_raster'),
+        hasLength(1),
+      );
+    });
+  }
+
   test('loads article page and questions independently', () async {
     final _FakeArticleRepository repository = _FakeArticleRepository();
     final ProviderContainer container = ProviderContainer(

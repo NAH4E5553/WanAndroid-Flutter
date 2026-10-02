@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 启动画面统一配色：浅色资源。深色变体见 values-night/colors.xml。
+     颜色与 Flutter 起始画面（startup_reveal_layer.dart）逐一对应。 -->
+<resources>
+    <color name="launch_background">#FFFFFFFF</color>
+</resources>
