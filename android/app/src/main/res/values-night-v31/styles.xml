@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API31+ 深色变体：night 限定符优先于平台版本限定符，浅色的 values-v31
+     不会合并进这里（style 变体不自动合并属性）。深色模式必须同样声明系统
+     SplashScreen 图标与背景，否则会落入系统默认图标处理，破坏与 Flutter
+     起始画面一致的 96dp 构图（验收 R02）。背景用夜色 launch_background 色。 -->
+<resources>
+    <!-- Theme applied to the Android Window while the process is starting
+         when the OS's Dark Mode setting is on (API 31+). -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowSplashScreenBackground">#FF000000</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/launch_splash_icon</item>
+    </style>
+</resources>

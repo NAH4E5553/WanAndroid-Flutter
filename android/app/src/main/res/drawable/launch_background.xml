@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!-- 统一静态启动画面（API 24-30 走 LaunchTheme windowBackground）。
+     背景色与居中图标和 Flutter 起始画面（lib/src/app/startup/）一致：
+     图标 96dp 居中；深浅色由 @color/launch_background 的 night 限定符解析
+     （values-night/colors.xml）。 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/white" />
-
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
+    <item android:drawable="@color/launch_background" />
+    <item
+        android:width="96dp"
+        android:height="96dp"
+        android:gravity="center"
+        android:drawable="@mipmap/ic_launcher" />
 </layer-list>

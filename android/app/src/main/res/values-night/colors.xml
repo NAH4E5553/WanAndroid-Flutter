@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 启动画面统一配色：深色变体（跟随系统深色模式）。 -->
+<resources>
+    <color name="launch_background">#FF000000</color>
+</resources>

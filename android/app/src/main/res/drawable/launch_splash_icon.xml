@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API 31+ 系统 SplashScreen 图标：把 96dp 图标居中放进系统 288dp 画布，
+     使系统遮罩不会裁切图形，且与 API 24–30 及 Flutter 起始画面的
+     96dp 居中构图一致。 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:width="96dp"
+        android:height="96dp"
+        android:gravity="center"
+        android:drawable="@mipmap/ic_launcher" />
+</layer-list>
