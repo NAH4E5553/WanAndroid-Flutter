@@ -151,7 +151,7 @@ class SearchViewModel extends Notifier<SearchUiState> {
         },
       );
     } on RequestCancelledException {
-      // A replacement load or route disposal owns the newer state.
+      // 更新的状态由替换加载或路由销毁接管。
     }
   }
 }

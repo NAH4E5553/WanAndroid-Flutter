@@ -56,6 +56,8 @@ jobs:
           python -m pip install -r .github/tests/requirements.txt
           python .github/scripts/prepare_ocr_action.py
           python -m unittest discover -s .github/tests -v
+          python3 tool/test_startup_measure_contract_acceptance.py
+          python3 tool/test_startup_measure_parsing.py
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.47.4
@@ -166,7 +168,9 @@ jobs:
     needs: classify-changes
     if: needs.classify-changes.outputs.platform == 'true'
     runs-on: macos-latest
-    timeout-minutes: 25
+    # 2026-10-03：排队后冷缓存的 macos-latest 上完整 iOS 集成套件两次
+    # 实测 25.5/26.0 分钟被 25 分钟上限取消（测试集未变），提到 45。
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
       - uses: subosito/flutter-action@v2

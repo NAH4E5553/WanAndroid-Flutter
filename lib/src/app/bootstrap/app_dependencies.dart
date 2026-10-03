@@ -21,7 +21,7 @@ import 'package:wanandroid_flutter/src/data/storage/avatar_image_source_gateway.
 import 'package:wanandroid_flutter/src/data/storage/secure_session_storage.dart';
 import 'package:wanandroid_flutter/src/data/storage/theme_preferences.dart';
 
-/// Composition used by the production bootstrap and mirrored in tests.
+/// 生产 bootstrap 使用的组装,并在测试中保持一致的镜像。
 AppDependencies buildAppDependencies({ThemeStorage? themePreferences}) {
   final SessionStore sessionStore = SessionStore(
     storage: SecureSessionStorage(),

@@ -12,10 +12,10 @@ import 'package:wanandroid_flutter/src/data/storage/avatar_image_processor.dart'
 import 'package:wanandroid_flutter/src/data/storage/avatar_image_source_gateway.dart';
 import 'package:wanandroid_flutter/src/model/avatar.dart';
 
-/// Single authority for the local avatar. All writes funnel through one
-/// serial queue guarded by a monotonic write version; every operation
-/// re-validates the `userId + accountVersionKey` identity it was given, so
-/// results that outlive their session are always dropped.
+/// 本地头像的唯一权威。所有写入都汇入同一条串行队列,由单调递增的
+/// 写版本守护;每个操作都会重新校验传入的 `userId + accountVersionKey`
+/// 身份,因此任何存活到其会话之外的结果
+/// 一律被丢弃。
 final class DefaultAvatarRepository implements AvatarRepository {
   DefaultAvatarRepository({
     required this._authRepository,
@@ -56,13 +56,13 @@ final class DefaultAvatarRepository implements AvatarRepository {
   bool _recoveryReady = false;
   final List<void Function()> _listeners = <void Function()>[];
 
-  /// One serial entry for every durable write; later intents wait, and an
-  /// earlier failure never leaks into a later operation.
+  /// 每一次持久化写入都经由这唯一的串行入口;更晚的意图排队等待,
+  /// 而较早的失败绝不会泄漏进后续操作。
   Future<void> _tail = Future<void>.value();
 
-  /// Pending-operation writes also serialize independently. This matters for
-  /// route disposal: its unawaited clear must finish before a newly opened
-  /// viewer can persist a replacement operation.
+  /// pending 操作的写入还会独立地另行串行化。这对路由销毁很关键:
+  /// 其以 unawaited 方式发起的清除必须先完成,
+  /// 新打开的查看页才能持久化一条替代用的 pending 操作。
   Future<void> _pendingTail = Future<void>.value();
 
   @override
@@ -98,9 +98,9 @@ final class DefaultAvatarRepository implements AvatarRepository {
     );
   }
 
-  /// Loads the persisted index, clears crash orphans and records whether a
-  /// pending external operation survived the process. Called once by the
-  /// composition root before any page reads the repository.
+  /// 加载已持久化的索引,清理崩溃产生的孤儿文件,并记录某条外部
+  /// pending 操作是否在进程重启后仍然存在。
+  /// 由组合根在任何页面读取本仓储之前调用一次。
   Future<void> initialize() => _enqueue(() async {
     final PendingAvatarOperation? pendingAtStartup = await _storage
         .readPendingOperation();
@@ -141,8 +141,8 @@ final class DefaultAvatarRepository implements AvatarRepository {
     if (!_identityMatches(identity)) {
       return const AvatarCandidateStart.identityChanged();
     }
-    // Single-flight: a second concurrent trigger must not overwrite the
-    // single pending record or race the first external page.
+    // 单飞:第二次并发触发不得覆盖这条唯一的 pending 记录,
+    // 也不得与第一个外部页面产生竞争。
     if (_picking) {
       return const AvatarCandidateStart.busy();
     }
@@ -158,8 +158,8 @@ final class DefaultAvatarRepository implements AvatarRepository {
     AvatarSource source,
     AvatarIdentity identity,
   ) async {
-    // Latest intent wins: a leftover candidate (defensive) or stale pending
-    // record never blocks a new external operation.
+    // 最新意图优先:遗留的候选(防御性)或过期的 pending 记录
+    // 绝不阻塞新的外部操作。
     if (_candidate != null) {
       discardCandidate();
     }
@@ -182,7 +182,7 @@ final class DefaultAvatarRepository implements AvatarRepository {
           : const AvatarCandidateStart.identityChanged();
     }
     final AvatarPickOutcome outcome = await _sourceGateway.pick(source: source);
-    // The external page returned; the session may have moved on meanwhile.
+    // 外部页面已返回;此期间会话可能已经发生变化。
     if (session != _pickSession) {
       // 会话已被失效（页面销毁/被新意图取代）：迟到结果丢弃，不留候选。
       _deletePickerArtifact(outcome);
@@ -415,8 +415,8 @@ final class DefaultAvatarRepository implements AvatarRepository {
       await _storage.writeIndex(newIndex);
       indexWritten = true;
       _index = newIndex;
-      // The commit is durable from here on; cleanup failures never roll it
-      // back.
+      // 从此处起提交已持久生效;
+      // 清理失败绝不会把它回滚。
       _discardCandidateLocked();
       _cleanupPreviousFile(previousEntry, p.basename(finalPath));
       return AvatarCommitOutcome.committed;
@@ -455,8 +455,8 @@ final class DefaultAvatarRepository implements AvatarRepository {
     required AvatarIdentity identity,
     Future<List<int>?> Function()? defaultAvatarPng,
   }) {
-    // Single-flight: the busy flag flips synchronously so a second tap while
-    // a save is queued or running is ignored.
+    // 单飞:busy 标志同步翻转,因此保存正在排队或执行期间的第二次点击
+    // 会被忽略。
     if (_savingToGallery) {
       return Future<AvatarGallerySaveOutcome>.value(
         AvatarGallerySaveOutcome.failure,
@@ -521,8 +521,8 @@ final class DefaultAvatarRepository implements AvatarRepository {
       return const AvatarCandidateStart.cancelled();
     }
     if (identity == null) {
-      // No verified session after restore: the pending result cannot be
-      // attributed, so drop it without touching the index.
+      // 恢复后没有已验证的会话:pending 结果无法归属,
+      // 因此直接丢弃,不改动索引。
       await _clearPendingOperation();
       await _cleanupCandidateDirectory();
       return const AvatarCandidateStart.cancelled();
@@ -533,15 +533,15 @@ final class DefaultAvatarRepository implements AvatarRepository {
         !session.loading &&
         !session.unverified &&
         session.accountVersionKey != null;
-    // After a process restart the operation identity is necessarily new, so
-    // attribution is re-established from the persisted pending record plus a
-    // verified session for the same userId.
+    // 进程重启之后,操作身份必然是全新的,因此归属关系改为由
+    // 已持久化的 pending 记录,加上针对同一 userId 的已验证会话
+    // 重新建立。
     final bool attributable =
         verified &&
         session.userId == pending.userId &&
         _now().difference(pending.createdAt) <= pendingTtl;
     if (!attributable) {
-      // Unprovable ownership: drop everything, never touch the index.
+      // 无法证明归属:全部丢弃,绝不改动索引。
       await _clearPendingOperation();
       await _cleanupCandidateDirectory();
       return const AvatarCandidateStart.cancelled();
@@ -664,9 +664,9 @@ final class DefaultAvatarRepository implements AvatarRepository {
   }
 
   void _handleSessionChanged() {
-    // Identity moved on (logout, account switch, expire): any in-flight
-    // candidate for another identity is dropped immediately so no page can
-    // commit it afterwards. Files stay on disk per the logout contract.
+    // 身份已经前进(登出、切换账号、过期):任何属于其他身份的在途候选
+    // 都会被立即丢弃,从而任何页面事后都无法提交它。
+    // 文件按登出契约保留在磁盘上。
     final _Candidate? candidate = _candidate;
     if (candidate != null) {
       final AuthStateView session = _authRepository.view();
@@ -707,7 +707,7 @@ final class DefaultAvatarRepository implements AvatarRepository {
     if (path == null) {
       return;
     }
-    // Best effort only; never throws into the caller's flow.
+    // 仅尽力而为;绝不向调用方的流程抛出异常。
     unawaited(_storage.deleteFile(path).catchError((Object _) {}));
   }
 

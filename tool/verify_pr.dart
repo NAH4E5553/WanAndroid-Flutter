@@ -18,6 +18,15 @@ Future<void> main(List<String> arguments) async {
       '.github/scripts/verify_docs.py',
     ]);
 
+    await runner.run(
+      'Startup measurement contract regressions',
+      'python3',
+      <String>['tool/test_startup_measure_contract_acceptance.py'],
+    );
+    await runner.run('Startup log parsing fixture', 'python3', <String>[
+      'tool/test_startup_measure_parsing.py',
+    ]);
+
     if (!options.quick) {
       final _WorktreeSnapshot before = await _WorktreeSnapshot.capture(
         root,

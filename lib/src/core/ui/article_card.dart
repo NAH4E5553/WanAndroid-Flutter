@@ -15,8 +15,8 @@ class ArticleCard extends StatelessWidget {
   final VoidCallback onTap;
   final bool showCategory;
 
-  /// Outer margins; callers embedded in swipe containers pass
-  /// [EdgeInsets.zero] to avoid double margins.
+  /// 外边距;嵌入滑动容器中的调用方传入 [EdgeInsets.zero]
+  /// 以避免双重边距。
   final EdgeInsetsGeometry? padding;
 
   @override

@@ -70,7 +70,7 @@ class TopicsViewModel extends Notifier<TopicsUiState> {
           _acceptTopics(value);
       }
     } on RequestCancelledException {
-      // A hidden or disposed tab must not publish a late tree.
+      // 隐藏或已销毁的标签页不得发布迟到的分类树。
     } finally {
       if (generation == _categoryGeneration) {
         _categoryBusy = false;

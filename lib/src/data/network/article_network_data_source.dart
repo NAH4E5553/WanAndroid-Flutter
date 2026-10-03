@@ -30,8 +30,8 @@ abstract interface class ArticleNetworkDataSource {
   );
 }
 
-/// Tags every public read with the captured session so the interceptor can
-/// attach cookies when a session is active; guests stay cookie-free.
+/// 为每个公开读取请求打上捕获到的会话标签，使拦截器能在会话激活时
+/// 附加 Cookie；访客请求则不携带 Cookie。
 final class DefaultArticleNetworkDataSource
     implements ArticleNetworkDataSource {
   DefaultArticleNetworkDataSource(this._service, this._sessions);

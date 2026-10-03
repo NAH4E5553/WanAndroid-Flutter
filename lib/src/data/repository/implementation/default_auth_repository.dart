@@ -164,7 +164,7 @@ final class DefaultAuthRepository implements AuthRepository {
         remote: const DataFailure<void>(DataError.storage),
       );
     }
-    // Best-effort: carries only the detached account's cookies, never retries.
+    // 尽力而为:只携带被分离账号的 Cookie,绝不重试。
     final DataResult<void> remote = await requestWithoutData(
       request: () => _source.logout(detached),
       cancellation: const LiveRequestCancellation(),

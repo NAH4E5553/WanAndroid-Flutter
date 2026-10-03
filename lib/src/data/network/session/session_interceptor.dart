@@ -6,9 +6,9 @@ import 'package:wanandroid_flutter/src/data/network/session/session_models.dart'
 import 'package:wanandroid_flutter/src/data/network/session/session_store.dart';
 import 'package:wanandroid_flutter/src/data/network/session/web_cookie.dart';
 
-/// Attaches the captured session's cookies to API requests and observes
-/// Set-Cookie values on responses. The per-request tag travels in
-/// `Options.extra['wan_session']`; requests without a tag stay cookie-free.
+/// 把捕获到的会话 Cookie 附加到 API 请求上，并观察响应中的
+/// Set-Cookie 值。每个请求的标签通过 `Options.extra['wan_session']`
+/// 传递；未打标签的请求不携带 Cookie。
 final class SessionInterceptor extends Interceptor {
   const SessionInterceptor(this._store, this._coordinator);
 
@@ -88,8 +88,8 @@ final class SessionInterceptor extends Interceptor {
             await _store.flushResponseCookies(tag);
           })
           .catchError((Object _) {
-            // SessionStore already publishes storage failures through its
-            // authoritative snapshot; response delivery must not double-fail.
+            // SessionStore 已通过其权威快照发布过存储失败；
+            // 响应投递不得二次失败。
           }),
     );
   }

@@ -25,9 +25,9 @@ void bootstrap() {
   StartupMetrics.instance.mark('binding_ready');
   final AppDependencies dependencies = buildAppDependencies();
   unawaited(dependencies.themeController.load());
-  // Public browsing does not wait for restore, but the avatar startup chain
-  // itself is deterministic: initialize (including orphan cleanup) and
-  // session restore both finish before lost picker data is consumed.
+  // 公开浏览不等待恢复,但头像启动链本身是确定性的:
+  // 初始化(包括孤儿清理)与会话恢复都会完成,
+  // 之后才会消费丢失的选择器数据。
   unawaited(_initializeAndRecoverAvatar(dependencies));
   final ReadingHistoryDatabase historyDatabase = ReadingHistoryDatabase();
   StartupMetrics.instance.mark('dependencies_ready');
@@ -74,10 +74,10 @@ void bootstrap() {
   StartupMetrics.instance.mark('run_app');
 }
 
-/// Runs after the session restore finished: when a persisted pending avatar
-/// operation survived a process kill and re-attributes to the verified
-/// account, the repository exposes a recovery candidate and the app layer
-/// navigates to the adjust page.
+/// 在会话恢复完成后运行:当一条持久化的待处理头像操作
+/// 在进程被杀后幸存,并重新归属到已验证账号时,
+/// 仓储会暴露一个恢复候选,app 层
+/// 随之导航到调整页。
 Future<void> _initializeAndRecoverAvatar(AppDependencies dependencies) async {
   await Future.wait<void>(<Future<void>>[
     dependencies.avatarRepository.initialize(),
@@ -91,9 +91,9 @@ Future<void> _initializeAndRecoverAvatar(AppDependencies dependencies) async {
           accountVersionKey: session.accountVersionKey!,
         )
       : null;
-  // No verified account: the repository clears the stale pending record.
-  // On successful attribution the repository publishes recoveryReady and the
-  // app layer navigates to the adjust page, then markRecoveryConsumed.
+  // 没有已验证账号:仓储清除过期的待处理记录。
+  // 归属成功时,仓储发布 recoveryReady,app 层导航到调整页,
+  // 之后调用 markRecoveryConsumed。
   await dependencies.avatarRepository.consumeRecoveredOperation(
     identity: identity,
   );

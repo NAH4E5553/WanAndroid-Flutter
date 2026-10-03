@@ -23,8 +23,8 @@ final class SharedPreferencesThemePreferences implements ThemeStorage {
       return decodeThemeSelection(encoded);
     }
 
-    // Compatibility with the initial stage-5 implementation. New writes use
-    // one value so palette and mode can no longer be partially committed.
+    // 兼容 stage-5 初版实现。新写入使用单个值,
+    // 使 palette 与 mode 不再可能被部分提交。
     final String? paletteName = await _preferences.getString(_legacyPaletteKey);
     final String? modeName = await _preferences.getString(_legacyModeKey);
     if (paletteName == null || modeName == null) {

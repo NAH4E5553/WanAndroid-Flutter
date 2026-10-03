@@ -1,0 +1,16 @@
+1767000000.050   900-900  WAN_STARTUP_MARK I : launch_0_999
+1767000000.100   900-900  WAN_STARTUP_MARK I : launch_0_999
+1767000000.200  1500-1500 ActivityTaskManager I: START u0 cmp=com.personal.wanandroid.flutter.startup/.MainActivity
+1767000000.900  1500-1500 ActivityManager I: Displayed com.personal.wanandroid.flutter.startup/.MainActivity: +700ms
+1767000001.100  2000-2000 flutter I : WAN_STARTUP {"schema":1,"point":"dart_main","outcome":"ok","dart_us":0,"epoch_us":1767000001100000}
+1767000001.120  2000-2000 flutter I : WAN_STARTUP {"schema":1,"point":"binding_ready","outcome":"ok","dart_us":2200,"epoch_us":1767000001122000}
+1767000001.130  2000-2000 flutter I : WAN_STARTUP {"schema":1,"point":"dependencies_ready","outcome":"ok","dart_us":3200,"epoch_us":1767000001132000}
+1767000001.135  2000-2000 flutter I : WAN_STARTUP {"schema":1,"point":"run_app","outcome":"ok","dart_us":3700,"epoch_us":1767000001137000}
+1767000001.900  2000-2000 flutter I : WAN_STARTUP {"schema":1,"point":"first_raster","outcome":"ok","dart_us":801000,"epoch_us":1767000001901000}
+1767000002.700  2000-2000 flutter I : WAN_STARTUP {"schema":1,"point":"startup_layer_exit","outcome":"ok","dart_us":1601000,"epoch_us":1767000002701000}
+1767000002.750  2000-2000 flutter I : WAN_STARTUP {"schema":1,"point":"startup_layer_exit","outcome":"ok","dart_us":1651000,"epoch_us":1767000002751000}
+1767000002.800  2000-2000 flutter I : WAN_STARTUP {"schema":1,"point":"home_first_raster","outcome":"ok","dart_us":1701000,"epoch_us":1767000002801000}
+1767000002.850  2000-2000 flutter I : WAN_STARTUP {"schema":1,"point":"home_articles_raster","outcome":"ok","dart_us":1751000,"epoch_us":1767000002851000}
+1767000002.900  2000-2000 flutter I : WAN_STARTUP {"schema":1,"point":"home_terminal_raster","outcome":"success","dart_us":1801000,"epoch_us":1767000002901000}
+1767000002.950  2000-2000 flutter I : WAN_STARTUP {"schema":1,"point":"home_content_raster","outcome":"success","dart_us":1851000,"epoch_us":1767000002951000}
+1767000002.960  2000-2000 flutter I : WAN_STARTUP {"schema":9,"point":"unknown_point","outcome":"ok","dart_us":1,"epoch_us":1767000002960000}

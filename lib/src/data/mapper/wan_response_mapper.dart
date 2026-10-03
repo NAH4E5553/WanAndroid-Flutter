@@ -42,8 +42,8 @@ Future<DataResult<T>> requestWithData<T>({
   }
 }
 
-/// Maps write-style endpoints where the envelope itself carries the outcome;
-/// `data` may legitimately be null and is not required.
+/// 映射写入型端点，此时 envelope 本身即携带结果；
+/// `data` 可以合法地为 null，并不要求必须存在。
 Future<DataResult<void>> requestWithoutData({
   required Future<Map<String, dynamic>> Function() request,
   required RequestCancellation cancellation,

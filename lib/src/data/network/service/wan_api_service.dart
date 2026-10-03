@@ -33,8 +33,8 @@ abstract interface class WanApiService {
   });
 }
 
-/// Session-bound endpoints; the session tag rides in `Options.extra` so the
-/// interceptor can attach or withhold cookies per the frozen contract.
+/// 与会话绑定的端点；会话标签随 `Options.extra` 传递，拦截器据此
+/// 附加或扣留 Cookie，遵循已冻结的契约。
 abstract interface class WanSessionApiService {
   Future<Map<String, dynamic>> login(
     String username,

@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
-/// Native boundary that applies the encoded image's EXIF orientation before
-/// the candidate is ever shown or cropped. The native implementations also
-/// enforce the same decode limits before allocating a full-size bitmap.
+/// 在候选图被展示或裁剪之前,应用编码图像 EXIF 方向的
+/// 原生边界。原生实现还会在分配全尺寸位图之前,
+/// 强制执行相同的解码限制。
 abstract interface class AvatarImageNormalizationGateway {
   Future<void> normalizeToPng({
     required String sourcePath,
@@ -70,8 +70,8 @@ final class ChannelAvatarImageNormalizationGateway
   }
 }
 
-/// Test-only/local-host implementation. Production composition must use the
-/// native gateway because a byte copy does not apply EXIF orientation.
+/// 仅用于测试/本地宿主的实现。生产组装必须使用原生网关,
+/// 因为字节复制不会应用 EXIF 方向。
 final class CopyingAvatarImageNormalizationGateway
     implements AvatarImageNormalizationGateway {
   const CopyingAvatarImageNormalizationGateway();

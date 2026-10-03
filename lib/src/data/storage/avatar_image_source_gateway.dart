@@ -1,15 +1,15 @@
 import 'package:image_picker/image_picker.dart';
 import 'package:wanandroid_flutter/src/model/avatar.dart';
 
-/// Gateway to the system camera and system photo picker. The app never reads
-/// the gallery directly: it only receives the single user-picked file.
+/// 系统相机和系统照片选择器的网关。应用从不直接读取相册:
+/// 只接收用户挑选的那一个文件。
 abstract interface class AvatarImageSourceGateway {
-  /// Opens the external system page. Must be treated as a process-lifetime
-  /// boundary on Android: the app may be killed while it is open.
+  /// 打开外部系统页面。在 Android 上必须视为进程生命周期边界:
+  /// 页面打开期间应用可能被杀。
   Future<AvatarPickOutcome> pick({required AvatarSource source});
 
-  /// One-shot recovery of the result lost to an Android process kill. Must
-  /// be called once per process, after the session restore finished.
+  /// 对因 Android 进程被杀而丢失结果的一次性恢复。每个进程
+  /// 只能调用一次,且必须在会话恢复完成之后。
   Future<AvatarPickOutcome> retrieveLostData();
 }
 
@@ -27,9 +27,9 @@ final class ImagePickerAvatarImageSourceGateway
         source: source == AvatarSource.camera
             ? ImageSource.camera
             : ImageSource.gallery,
-        // The full-resolution image is required: the user may zoom into any
-        // region before the 1:1 crop, and orientation normalization runs on
-        // the decoded pixels.
+        // 必须使用全分辨率图像:用户在 1:1 裁剪前
+        // 可能放大到任意区域,且方向归一化
+        // 在解码后的像素上执行。
         requestFullMetadata: false,
       );
       if (file == null) {
@@ -37,8 +37,8 @@ final class ImagePickerAvatarImageSourceGateway
       }
       return AvatarPickOutcome.ready(file.path);
     } on Object {
-      // System page unavailable (no camera app, picker crashed, plugin
-      // error). The caller shows failure feedback and keeps the avatar.
+      // 系统页面不可用(无相机应用、选择器崩溃、插件错误)。
+      // 调用方展示失败反馈并保留现有头像。
       return AvatarPickOutcome.unavailable;
     }
   }

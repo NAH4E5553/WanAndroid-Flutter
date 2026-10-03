@@ -1,22 +1,22 @@
 import 'package:flutter/services.dart';
 import 'package:wanandroid_flutter/src/model/avatar.dart';
 
-/// Gateway that hands avatar bytes to the system gallery through the minimal
-/// native platform channel (Android MediaStore / iOS PhotoKit add-only).
-/// No third-party gallery plugin is involved.
+/// 通过最小化的原生平台通道(Android MediaStore / iOS PhotoKit,
+/// 仅新增写入)把头像字节交给系统相册的网关。
+/// 不涉及任何第三方相册插件。
 abstract interface class AvatarGalleryGateway {
-  /// Writes [bytes] as a new gallery entry named [fileName]. Never overwrites
-  /// existing entries; the caller supplies unique time-stamped names.
+  /// 把 [bytes] 写为名为 [fileName] 的新相册条目。绝不覆盖已有条目;
+  /// 调用方提供带时间戳的唯一名称。
   Future<AvatarGallerySaveOutcome> savePng({
     required String fileName,
     required Uint8List bytes,
   });
 
-  /// Marks [directoryPath] as excluded from system backups where the
-  /// platform needs an explicit per-directory flag (iOS). Android relies on
-  /// the manifest-level `allowBackup="false"`; the native side treats this
-  /// as a no-op there. Returns false when the exclusion could not be applied
-  /// so the caller can record a diagnostic.
+  /// 在平台需要显式按目录标记时(iOS),把 [directoryPath] 标记为
+  /// 排除在系统备份之外。Android 依赖 manifest 级的
+  /// `allowBackup="false"`;原生侧在 Android 上将其
+  /// 视为 no-op。无法应用排除标记时返回 false,
+  /// 以便调用方记录诊断。
   Future<bool> excludeFromBackup(String directoryPath);
 }
 
@@ -51,7 +51,7 @@ final class ChannelAvatarGalleryGateway implements AvatarGalleryGateway {
           return AvatarGallerySaveOutcome.failureWith(error);
       }
     } on MissingPluginException {
-      // Tests and non-mobile hosts never configure the channel.
+      // 测试和非移动端宿主从不配置该通道。
       return AvatarGallerySaveOutcome.failure;
     } on Object {
       return AvatarGallerySaveOutcome.failure;
@@ -67,8 +67,8 @@ final class ChannelAvatarGalleryGateway implements AvatarGalleryGateway {
       );
       return result == 'success';
     } on Object {
-      // Best effort: failure to flag the directory must not block the flow,
-      // but the outcome is reported so it can be diagnosed.
+      // 尽力而为:目录标记失败不得阻塞流程,
+      // 但要上报结果以便诊断。
       return false;
     }
   }

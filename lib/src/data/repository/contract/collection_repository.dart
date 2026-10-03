@@ -3,33 +3,33 @@ import 'package:wanandroid_flutter/src/model/article.dart';
 import 'package:wanandroid_flutter/src/model/collection.dart';
 import 'package:wanandroid_flutter/src/model/page_result.dart';
 
-/// Account-scoped authority for collect state. No background scope, queued
-/// writes, or optimistic success; every rule below mirrors the frozen
-/// collection contract.
+/// 按账号划定作用域的收藏(collect)状态权威。
+/// 没有后台作用域、没有排队写入,也没有乐观成功;
+/// 以下每一条规则都与已冻结的收藏契约一一对应。
 abstract interface class CollectionRepository {
-  /// Observable snapshot; listeners fire on state transitions only.
+  /// 可观察的快照;listener 仅在状态发生变迁时触发。
   CollectionSnapshot get current;
 
   void addListener(void Function() listener);
 
   void removeListener(void Function() listener);
 
-  /// Wraps a public article-list load: captures session and write version
-  /// before the load, merges only eligible server hints afterwards, and
-  /// annotates items with the session key when their state is known.
+  /// 包装一次公开文章列表的加载:加载前捕获会话与写版本,
+  /// 之后只合并有资格采纳的服务端提示,
+  /// 并在条目状态已知时为其标注会话键。
   Future<DataResult<PageResult<Article>>> articlePage(
     Future<DataResult<PageResult<Article>>> Function() load,
   );
 
-  /// Loads one page of the signed-in account's collection list.
+  /// 加载已登录账号收藏列表中的一页。
   Future<DataResult<PageResult<CollectionItem>>> page(int generation, int page);
 
-  /// Read-only reconciliation for an unknown state: found only after reaching
-  /// the list end; a bounded or failed scan stays unknown.
+  /// 针对未知状态的只读核对:只有翻到列表末尾才能确认存在;
+  /// 有界(未翻完)或失败的扫描保持未知。
   Future<DataResult<void>> reconcile(int generation, CollectionTarget target);
 
-  /// Drives the user's expressed goal, never a blind toggle of the latest
-  /// known boolean.
+  /// 驱动的是用户明确表达的目标,
+  /// 绝不是对最新已知布尔值的盲目切换。
   Future<DataResult<void>> setCollected(
     int generation,
     CollectionTarget target,

@@ -1,7 +1,7 @@
 import 'package:wanandroid_flutter/src/model/article.dart';
 
-/// Identity of a collectable target. Internal articles act on the origin id;
-/// list records act on their record id; external links only ever uncollect.
+/// 可收藏目标的身份。站内文章按 origin id 操作;
+/// 列表记录按其 record id 操作;外部链接只会被取消收藏。
 class CollectionTarget {
   const CollectionTarget(this.articleId, this.recordId);
 
@@ -25,8 +25,8 @@ class CollectionItem {
   final Article article;
 }
 
-/// Server-known collect state; unknown (`collected == null`) requires
-/// reconciliation before any follow-up write per the contract.
+/// 服务端已知的收藏状态;未知(`collected == null`)时按契约
+/// 必须先核对才能执行任何后续写入。
 class CollectionStatus {
   const CollectionStatus({this.collected, this.busy = false});
 
@@ -47,7 +47,7 @@ class CollectionSnapshot {
     this.statuses = const <String, CollectionStatus>{},
   });
 
-  /// Null when the current session is not authenticated.
+  /// 当前会话未认证时为 null。
   final int? generation;
   final String? sessionKey;
   final int revision;

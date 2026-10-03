@@ -3,8 +3,8 @@ import 'package:wanandroid_flutter/src/core/result/data_result.dart';
 import 'package:wanandroid_flutter/src/data/repository/contract/collection_repository.dart';
 import 'package:wanandroid_flutter/src/model/collection.dart';
 
-/// Null outside the production composition root keeps isolated stage-4 reader
-/// fixtures independent from stage-5 account and collection wiring.
+/// 在生产组合根之外保持为 null，使隔离的 stage-4 阅读器夹具
+/// 不依赖 stage-5 的账号与收藏装配。
 final Provider<ReaderCollectionViewModel?> readerCollectionViewModelProvider =
     Provider<ReaderCollectionViewModel?>((Ref ref) => null);
 

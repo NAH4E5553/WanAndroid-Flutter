@@ -61,11 +61,11 @@ class _RestorableWanAndroidAppState
     if (_avatarRepository!.view().recoveryReady) {
       _navigateToRecoveredAvatar();
     }
-    // Composition wiring happens after the first frame: touching providers
-    // here would eagerly initialize the home graph (and its requests) before
-    // the first paint. The covered predicate itself defaults to the core
-    // controller's static answer, so the frame gate is correct even before
-    // this runs.
+    // 组装接线发生在首帧之后:在这里触碰 provider 会在首次绘制之前
+    // 急切地初始化 home 依赖图(连同其请求)。
+    // covered 判定本身默认取 core 控制器的静态答案,
+    // 因此即使在本段代码运行之前,
+    // 帧门控也是正确的。
     WidgetsBinding.instance.addPostFrameCallback((Duration _) {
       if (mounted) {
         _assembleStartupReveal();
@@ -73,28 +73,28 @@ class _RestorableWanAndroidAppState
     });
   }
 
-  /// Composition-only wiring for the startup reveal: the home ViewModel gets
-  /// its occlusion predicate from the authoritative controller, and once the
-  /// layer is gone the current home snapshot is re-reported so the genuine
-  /// first visible frame can complete the startup points. Feature code never
-  /// reads the app-layer controller itself.
+  /// 仅为启动揭幕做组装接线:home ViewModel 的遮挡判定取自权威控制器;
+  /// 当层消失后,当前 home 快照会被重新上报,
+  /// 从而让真正首次可见的帧完成启动计时点。
+  /// Feature 代码绝不读取
+  /// app 层控制器本身。
   void _assembleStartupReveal() {
     _startupRevealController = ref.read(startupRevealControllerProvider);
     ref.read(homeViewModelProvider.notifier).startupCovered = () =>
         !(_startupRevealController?.isDone ?? true);
     _startupRevealController!.addListener(_onStartupRevealChanged);
-    // Production fast-path: as soon as the visible home reaches its terminal
-    // state (success/empty/error rendered behind the layer), the reveal ends
-    // early instead of playing the full teaser. Requests still run in
-    // parallel; failure/empty never block (the watchdog bounds occlusion).
+    // 生产快速路径:一旦可见的 home 到达终态(成功/空/错误已在层后渲染),
+    // 揭幕即提前结束,而不播放完整预告。请求仍在并行运行;
+    // 失败/空态绝不阻塞
+    //(遮挡时长由看门狗限定)。
     ref.listenManual(homeViewModelProvider, (
       HomeUiState? previous,
       HomeUiState next,
     ) {
       _forwardReadiness(next);
     });
-    // The home graph may already be terminal when this wiring runs (fast
-    // builds, preloaded states) — check once instead of waiting for a change.
+    // 本段接线运行时 home 依赖图可能已处于终态(快速构建、预加载状态)——
+    // 因此立即检查一次,而不是等待状态变化。
     _forwardReadiness(ref.read(homeViewModelProvider));
   }
 
@@ -112,11 +112,11 @@ class _RestorableWanAndroidAppState
       return;
     }
     if (controller.isDone) {
-      // Deferred to a post-frame callback: mutating another provider from
-      // inside this notification iteration is unsafe. The republished
-      // snapshot makes the home screen rebuild on the NEXT frame — the first
-      // frame where the content is genuinely visible — and that build
-      // reports its startup points inside its own build window.
+      // 推迟到 post-frame 回调执行:在这轮通知迭代内部修改另一个 provider
+      // 是不安全的。重新发布的快照会让 home 屏幕在
+      // 下一帧重建——那是内容真正首次可见的一帧——
+      // 并且该次构建会在自己的构建窗口内
+      // 上报其启动计时点。
       WidgetsBinding.instance.addPostFrameCallback((Duration _) {
         if (!mounted) {
           return;

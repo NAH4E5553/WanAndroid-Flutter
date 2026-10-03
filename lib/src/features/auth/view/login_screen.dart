@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:wanandroid_flutter/src/core/result/data_result.dart';
 import 'package:wanandroid_flutter/src/features/auth/state/login_ui_state.dart';
 
-/// Login view. Request ownership and navigation live in the route-scoped
-/// view model so leaving this screen can cancel an in-flight login.
+/// 登录页。请求所有权与导航都放在路由作用域的 ViewModel 中，
+/// 这样离开本页面时可以取消进行中的登录请求。
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
     required this.state,

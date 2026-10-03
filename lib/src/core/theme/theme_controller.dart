@@ -9,9 +9,9 @@ enum ThemeLoadStatus { loading, ready, readFailed }
 
 enum ThemeApplyResult { applied, failed, superseded, ignored }
 
-/// Applies theme selections immediately, persists them, and rolls the visible
-/// state back when persistence fails. Read failures keep defaults but surface
-/// [ThemeLoadStatus.readFailed] so the UI can say defaults are in use.
+/// 立即应用主题选择并持久化;当持久化失败时,把可见状态回滚。
+/// 读取失败时保留默认值,但会呈现 [ThemeLoadStatus.readFailed],
+/// 让 UI 能说明当前使用的是默认值。
 class ThemeController extends ChangeNotifier {
   ThemeController({required this._preferences});
 
@@ -47,9 +47,9 @@ class ThemeController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Applies selections immediately and serializes writes. While a write is in
-  /// flight, newer selections replace the queued value so the latest user
-  /// intent is always the final value persisted.
+  /// 立即应用选择,并对写入做串行化。当一次写入仍在进行时,
+  /// 更新的选择会替换排队中的值,因此最终持久化的
+  /// 始终是用户的最新意图。
   Future<ThemeApplyResult> apply(WanPalette newPalette, ThemeMode newMode) {
     if (!ready) {
       return Future<ThemeApplyResult>.value(ThemeApplyResult.ignored);

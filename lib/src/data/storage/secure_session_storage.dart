@@ -1,8 +1,8 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:wanandroid_flutter/src/data/storage/session_storage.dart';
 
-/// Encrypted on-device session payload. Android excludes it from backups and
-/// iOS keeps it off-cloud via the platform options below.
+/// 设备上加密存储的会话载荷。Android 将其排除在备份之外,
+/// iOS 通过下方平台选项使其不进入云端。
 final class SecureSessionStorage implements SessionStorage {
   SecureSessionStorage({FlutterSecureStorage? storage})
     : _storage =
