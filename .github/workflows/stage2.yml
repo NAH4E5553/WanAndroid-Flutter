@@ -168,8 +168,10 @@ jobs:
     needs: classify-changes
     if: needs.classify-changes.outputs.platform == 'true'
     runs-on: macos-latest
-    # 2026-10-03：排队后冷缓存的 macos-latest 上完整 iOS 集成套件两次
-    # 实测 25.5/26.0 分钟被 25 分钟上限取消（测试集未变），提到 45。
+    # 2026-10-03：完整 iOS 集成套件此前两次在 25 分钟上限处被取消
+    # （结果 cancelled，不能记为测试通过；执行超时根因未隔离，不归因
+    # runner 容量），上限提到 45。调整后该 job 实际 13m36s 完成、
+    # Run iOS integration suite 步骤 8m59s、5/5 通过。
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
