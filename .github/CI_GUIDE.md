@@ -21,6 +21,8 @@ dart run tool/verify_pr.dart --all
 
 设备不唯一时使用 `--android-device=<id>` 或 `--ios-device=<id>`。`--dry-run`只打印计划，不能作为验证证据。
 
+启动采样的完整性/汇总回归和日志解析也由verify_pr及CI的Python检查执行：`python3 tool/test_startup_measure_contract_acceptance.py`、`python3 tool/test_startup_measure_parsing.py`。`tool/android/StartupSplashProbe.java`另在API31+通过app_process只读加载APK验证原生资源像素；设备探针与连续录屏须明确设备执行，不由Python/Widget测试代替。
+
 以下分项入口保留用于故障定位和门禁开发：
 
 ```bash

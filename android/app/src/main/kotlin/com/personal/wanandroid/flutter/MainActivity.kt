@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.os.Build
+import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import androidx.core.app.ActivityCompat
@@ -30,6 +31,17 @@ import java.io.FileOutputStream
  * 扫描成功即图片已在图库可见，不误报成功；两段共用同一 pending 槽。
  */
 class MainActivity : FlutterActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Match the system splash's full-window center in Flutter. The
+            // Flutter overlay owns the only fade; a system fade would expose
+            // and then re-cover the matching first frame.
+            window.setDecorFitsSystemWindows(false)
+            splashScreen.setOnExitAnimationListener { it.remove() }
+        }
+        super.onCreate(savedInstanceState)
+    }
+
     private val channelName = "dev.flutter.local.avatar_gallery"
     private val imageChannelName = "dev.flutter.local.avatar_image"
     private val writePermissionRequestCode = 4711
