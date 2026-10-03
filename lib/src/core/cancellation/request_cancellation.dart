@@ -68,8 +68,8 @@ final class RequestCancelledException implements Exception {
   String toString() => 'RequestCancelledException';
 }
 
-/// Cancellation signal for session-bound calls that no caller cancels; the
-/// detached logout stays best-effort and uncancelled by design.
+/// 供没有任何调用方取消的会话绑定调用使用的取消信号;
+/// detached 登出按设计保持尽力而为且不被取消。
 final class LiveRequestCancellation implements RequestCancellation {
   const LiveRequestCancellation();
 

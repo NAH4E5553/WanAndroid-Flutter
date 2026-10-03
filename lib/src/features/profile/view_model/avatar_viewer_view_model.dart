@@ -54,11 +54,11 @@ class AvatarViewerViewModel extends Notifier<AvatarViewerState> {
       _albumCancellation?.cancel();
       _repository.removeListener(_publish);
       _authRepository.removeListener(_publish);
-      // The viewer owns the external picker round-trip. Leaving the route
-      // invalidates that operation even when no candidate has been published
-      // yet, so a late system result cannot open the adjust page afterwards.
-      // Defer repository notifications until Riverpod finishes this lifecycle
-      // callback; a synchronous notification may write another provider.
+      // 查看页拥有与外部选图器之间的整轮往返交互。离开路由
+      // 会使该操作失效——即使尚未发布任何候选图——因此迟到的
+      // 系统结果无法在之后打开调整页。把仓储通知推迟到 Riverpod
+      // 完成本生命周期回调之后；
+      // 同步通知可能会写入另一个 Provider。
       scheduleMicrotask(_repository.discardCandidate);
     });
     return _state();
@@ -153,7 +153,7 @@ class AvatarViewerViewModel extends Notifier<AvatarViewerState> {
       try {
         await lease?.release();
       } on Object {
-        /* Package cleanup remains retryable. */
+        /* 包的清理仍保持可重试。 */
       }
       cancellation.cancel();
       _albumCancellation = null;

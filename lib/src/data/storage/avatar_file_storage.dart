@@ -7,8 +7,8 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:wanandroid_flutter/src/model/avatar.dart';
 
-/// Directory seams so tests can run against temp layouts while production
-/// resolves the real app-support/temp directories.
+/// 目录接缝,使测试可针对临时目录布局运行,而生产环境解析
+/// 真实的 app-support/temp 目录。
 abstract interface class AvatarDirectories {
   Future<String> applicationSupportDirectory();
   Future<String> temporaryDirectory();
@@ -26,7 +26,7 @@ final class PathProviderAvatarDirectories implements AvatarDirectories {
       (await getTemporaryDirectory()).path;
 }
 
-/// Persisted avatar index: single authority mapping `userId` → avatar file.
+/// 已持久化的头像索引:`userId` → 头像文件的唯一权威映射。
 @immutable
 final class AvatarIndexSnapshot {
   const AvatarIndexSnapshot({
@@ -39,7 +39,7 @@ final class AvatarIndexSnapshot {
 
   final int writeVersion;
 
-  /// `userId` → avatar file name (no paths).
+  /// `userId` → 头像文件名(不含路径)。
   final Map<int, String> entries;
 
   String? fileFor(int userId) => entries[userId];
@@ -62,8 +62,8 @@ final class AvatarIndexSnapshot {
     },
   };
 
-  /// Null when the payload is unreadable/corrupt; the caller records a
-  /// sanitized diagnostic and falls back to the default avatar.
+  /// 载荷不可读/损坏时返回 null;调用方记录脱敏诊断信息,
+  /// 并回退到默认头像。
   static AvatarIndexSnapshot? fromJson(Object? json) {
     if (json is! Map) {
       return null;
@@ -87,10 +87,10 @@ final class AvatarIndexSnapshot {
   }
 }
 
-/// File-backed avatar storage: avatar files, the versioned JSON index and
-/// the pending-operation record. All writes use write-flush-rename inside the
-/// destination directory so a process kill can never leave a half-written
-/// index or image behind.
+/// 基于文件的头像存储:头像文件、带版本的 JSON 索引以及
+/// 待处理操作记录。所有写入都在目标目录内使用
+/// write-flush-rename(写-刷盘-改名),使进程被杀也绝不会留下
+/// 写了一半的索引或图像。
 final class AvatarFileStorage {
   AvatarFileStorage({required this._directories, this._excludeFromBackup});
 
@@ -163,8 +163,8 @@ final class AvatarFileStorage {
   Future<String> avatarFilePath(String fileName) async =>
       p.join(await avatarDirectory(), fileName);
 
-  /// Writes bytes durably: temp file + flush + rename inside the same
-  /// directory, so the destination path only ever holds a complete file.
+  /// 可靠地写入字节:同一目录内临时文件 + 刷盘 + 改名,
+  /// 使目标路径承载的只会是完整文件。
   Future<void> writeBytesAtomically(String destination, List<int> bytes) async {
     final File temp = File('$destination.${_uniqueSuffix()}.tmp');
     final RandomAccessFile handle = await temp.open(mode: FileMode.write);

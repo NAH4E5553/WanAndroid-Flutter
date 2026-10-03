@@ -5,7 +5,7 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 
-/// Local, opt-in diagnostics. No business state or user data is stored here.
+/// 本地的、需显式开启的诊断。此处不存储任何业务状态或用户数据。
 class StartupMetrics {
   StartupMetrics({
     required this.enabled,
@@ -48,8 +48,8 @@ class StartupMetrics {
       'point': point,
       'outcome': outcome,
       'dart_us': at - _startedAt!,
-      // Host correlates this with a device log marker preceding Launcher input.
-      // Subtract batched callback delay, rather than measuring log arrival time.
+      // 宿主将其与设备日志中先于 Launcher 输入的标记进行关联。
+      // 这里对批量回调延迟做减法修正,而不是度量日志到达时间。
       'epoch_us':
           epochMicros ?? DateTime.now().microsecondsSinceEpoch - (now - at),
     });
@@ -61,7 +61,7 @@ class StartupMetrics {
     SchedulerBinding.instance.addTimingsCallback(recordTimings);
   }
 
-  /// Called during the build of the actual visible UI, not on HTTP completion.
+  /// 在实际可见 UI 的构建期间调用,而不是在 HTTP 完成时调用。
   void frame(
     String point, {
     required bool Function() stillValid,

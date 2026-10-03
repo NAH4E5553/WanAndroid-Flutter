@@ -1,30 +1,30 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Phases of the unified startup reveal, in display order.
+/// 统一启动揭幕的各相位,按展示顺序排列。
 enum StartupRevealPhase {
-  /// Static composition identical to the native launch screen.
+  /// 与原生启动屏完全一致的静态构图。
   occluding,
 
-  /// The lightweight in-app animation is running on the static match.
+  /// 轻量的应用内动画正在静态匹配画面上运行。
   revealing,
 
-  /// The startup layer is fading out and handing rendering to the app.
+  /// 启动层正在淡出,并把渲染交还给应用。
   exiting,
 
-  /// The startup layer is removed for the rest of the process lifetime.
+  /// 启动层已移除,在进程余下的生命周期内不再出现。
   done,
 }
 
-/// Single source of truth for whether the startup layer still covers content.
+/// 启动层是否仍遮挡内容的唯一事实源。
 ///
-/// FRAME-DRIVEN: the controller holds NO timers. Phase dwell times are owned
-/// by the layer's animations (scale for the reveal, fade for the exit), which
-/// report completion back through [markRevealAnimationDone] and
-/// [markExitFinished]. Every transition notifies listeners, and the layer
-/// rebuilds through a ListenableBuilder — so each handoff step schedules and
-/// paints its own real frame, without depending on timer scheduling that can
-/// stall in reduced-animation or frozen-frame environments.
+/// 帧驱动(FRAME-DRIVEN):控制器绝不持有任何 timer。各相位的停留时长
+/// 由层自身的动画持有(揭幕用缩放,退出用淡出),动画通过
+/// [markRevealAnimationDone] 与 [markExitFinished] 回报完成。
+/// 每次转换都会通知监听者,层通过 ListenableBuilder 重建——
+/// 因此每个交接步骤都会自行调度并绘制自己的真实帧,
+/// 而不依赖可能在减少动画或冻结帧环境中停摆的
+/// timer 调度。
 class StartupRevealController extends ChangeNotifier {
   StartupRevealController({
     this.revealDuration = const Duration(milliseconds: 480),
@@ -35,24 +35,24 @@ class StartupRevealController extends ChangeNotifier {
   final Duration revealDuration;
   final Duration exitDuration;
 
-  /// Process-wide instance registered by the startup layer. Feature code
-  /// reads it through [coveredNow] without importing app modules; a null
-  /// instance means no overlay exists anywhere.
+  /// 由启动层注册的进程级实例。Feature 代码通过 [coveredNow] 读取它,
+  /// 无需导入 app 模块;实例为 null
+  /// 表示任何地方都不存在 overlay。
   static StartupRevealController? instance;
 
-  /// Whether any startup overlay currently covers the screen.
+  /// 当前是否有任何启动 overlay 遮挡着屏幕。
   static bool get coveredNow => !(instance?.isDone ?? true);
 
-  /// Invoked when the layer reaches its terminal phase. Set by the home
-  /// ViewModel to republish its snapshot on the removal frame; never persists
-  /// across hosts.
+  /// 在层到达终态相位时被调用。由 home ViewModel 设置,
+  /// 以便在移除那一帧上重新发布其快照;绝不跨宿主
+  /// 持久保留。
   static void Function()? onDone;
 
-  /// Kept as a documented budget: the layer's own animations always reach
-  /// done (reveal 480ms + exit 220ms; reduce-motion 32ms) because each
-  /// transition schedules a real frame. There is deliberately no timer to
-  /// enforce it — a frozen engine cannot paint anything anyway, so the user
-  /// is still on the native launch screen rather than behind a stuck overlay.
+  /// 作为文档化的预算保留:层自身的动画总能到达 done
+  ///(揭幕 480ms + 退出 220ms;减少动画 32ms),因为每次
+  /// 转换都会调度真实帧。这里刻意不设 timer 来强制它——
+  /// 引擎冻结时反正什么都绘制不出来,因此用户仍停留在
+  /// 原生启动屏上,而不是被卡死在僵死的 overlay 后面。
   final Duration maxOcclusion;
 
   StartupRevealPhase _phase = StartupRevealPhase.occluding;
@@ -61,15 +61,15 @@ class StartupRevealController extends ChangeNotifier {
 
   StartupRevealPhase get phase => _phase;
 
-  /// Monotonic counter; callbacks capture it and drop stale applications.
+  /// 单调递增计数器;回调捕获它,并丢弃过期的应用(过时的迟到结果)。
   int get generation => _generation;
 
   bool get isDone => _phase == StartupRevealPhase.done;
 
-  /// Called once the first frame that mirrors the native screen exists.
-  /// Idempotent: theme rebuilds and duplicate callbacks are no-ops. With the
-  /// reduce-motion accessibility setting the reveal is skipped and the layer
-  /// goes straight into its short exit.
+  /// 在存在第一个镜像原生画面的帧后调用一次。
+  /// 幂等:主题重建与重复回调都是 no-op。开启
+  /// 减少动画无障碍设置时,揭幕被跳过,层直接
+  /// 进入其短暂退出。
   void markFirstFrame({bool reduceMotion = false}) {
     if (_disposed || _phase != StartupRevealPhase.occluding) {
       return;
@@ -81,9 +81,9 @@ class StartupRevealController extends ChangeNotifier {
     _transition(StartupRevealPhase.revealing);
   }
 
-  /// Normal fast-path: the target content is ready and the reveal may end
-  /// early instead of playing the full teaser. Quick data success must not
-  /// wait for the full animation.
+  /// 常规快速路径:目标内容已就绪,揭幕可以提前结束,
+  /// 而不必播放完整的预告动画。数据的快速成功绝不得
+  /// 等待完整动画。
   void markContentReady() {
     if (_disposed ||
         _phase == StartupRevealPhase.done ||
@@ -93,7 +93,7 @@ class StartupRevealController extends ChangeNotifier {
     _transition(StartupRevealPhase.exiting);
   }
 
-  /// The reveal animation finished; the layer starts its exit fade.
+  /// 揭幕动画已结束;层开始其退出淡出。
   void markRevealAnimationDone() {
     if (_disposed || _phase != StartupRevealPhase.revealing) {
       return;
@@ -101,7 +101,7 @@ class StartupRevealController extends ChangeNotifier {
     _transition(StartupRevealPhase.exiting);
   }
 
-  /// The exit fade finished; the layer removes itself.
+  /// 退出淡出已结束;层自行移除。
   void markExitFinished() {
     if (_disposed || _phase != StartupRevealPhase.exiting) {
       return;
@@ -113,8 +113,8 @@ class StartupRevealController extends ChangeNotifier {
     _transition(StartupRevealPhase.done);
   }
 
-  /// Entering background collapses the layer: no replay after return, no
-  /// queued work to re-occlude content.
+  /// 进入后台会收起该层:返回后不重播,
+  /// 也没有排队的工作会重新遮挡内容。
   void handleBackgrounded() {
     if (_disposed || isDone) {
       return;
@@ -141,7 +141,7 @@ class StartupRevealController extends ChangeNotifier {
   }
 }
 
-/// Application-lifetime presentation controller; created on first read.
+/// 应用生命周期的呈现控制器;在首次读取时创建。
 final Provider<StartupRevealController> startupRevealControllerProvider =
     Provider<StartupRevealController>((Ref ref) {
       final StartupRevealController controller = StartupRevealController();
@@ -149,9 +149,9 @@ final Provider<StartupRevealController> startupRevealControllerProvider =
       return controller;
     });
 
-/// Derived read-only view of the authoritative controller phase. The
-/// Notifier's only writer is build(), which copies the controller's current
-/// phase and subscribes for the provider's lifetime.
+/// 权威控制器相位的派生只读视图。该 Notifier 唯一的
+/// 写入者是 build():它复制控制器当前的相位,
+/// 并在 provider 的生命周期内保持订阅。
 class StartupRevealPhaseController extends Notifier<StartupRevealPhase> {
   @override
   StartupRevealPhase build() {

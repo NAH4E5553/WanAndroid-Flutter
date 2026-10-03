@@ -1,8 +1,8 @@
 import 'package:wanandroid_flutter/src/core/cancellation/request_cancellation.dart';
 import 'package:wanandroid_flutter/src/data/network/service/wan_api_service.dart';
 
-/// Raw session-bound endpoint access; callers own session tagging and Wan
-/// envelope decoding via [requestWithData].
+/// 直接访问与会话绑定的端点；调用方负责会话打标，并通过 [requestWithData]
+/// 完成 Wan envelope 解码。
 abstract interface class AuthNetworkDataSource {
   Future<Map<String, dynamic>> login(
     String username,
@@ -52,8 +52,8 @@ class UserEnvelope {
   final List<String> cookies;
 }
 
-/// Login `data` is the user object itself; the session cookie arrives via
-/// Set-Cookie headers and is captured by the session interceptor.
+/// 登录的 `data` 就是用户对象本身；会话 Cookie 经由 Set-Cookie 头到达，
+/// 由会话拦截器捕获。
 UserEnvelope parseLoginResponse(Map<String, dynamic> body) {
   final Object? data = body['data'];
   if (data is! Map) {

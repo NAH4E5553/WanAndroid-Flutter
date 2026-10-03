@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-/// Shared left-swipe reveal container for history deletion and collection
-/// removal. Only the icon, tooltip and callback differ between features.
-/// The action layer is always present behind the foreground to avoid
-/// create/destroy flicker; gestures are split-axis so vertical scrolling
-/// never triggers the action.
+/// 历史删除与收藏移除共用的左滑揭示容器。
+/// 各 Feature 之间只有图标、tooltip 与回调不同。
+/// 操作层始终存在于前景之后,以避免创建/销毁闪烁;
+/// 手势按轴拆分,
+/// 因此垂直滚动绝不会触发该操作。
 class SwipeRevealActionItem extends StatefulWidget {
   const SwipeRevealActionItem({
     required this.revealed,

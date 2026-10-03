@@ -46,8 +46,8 @@ class _LoginRouteViewState extends ConsumerState<_LoginRouteView> {
     final LoginViewModel viewModel = ref.read(loginViewModelProvider.notifier);
     _scheduleCompletion(state);
     return PopScope<void>(
-      // Keep Cupertino's native back-swipe available. A completed platform
-      // pop still cancels the route-scoped request before disposal finishes.
+      // 保持 Cupertino 原生的侧滑返回可用。已完成的平台级 pop
+      // 仍会在销毁完成之前取消路由作用域的请求。
       canPop: true,
       onPopInvokedWithResult: (bool didPop, void result) {
         if (!didPop) {

@@ -3,11 +3,11 @@ import 'package:wanandroid_flutter/src/core/theme/wan_theme.dart';
 
 typedef ThemeSelection = ({WanPalette palette, ThemeMode mode});
 
-/// Persisted appearance selection. Throws on storage failure so callers can
-/// roll the visible state back instead of reporting false success.
+/// 持久化的外观选择。存储失败时抛出异常,以便调用方
+/// 回滚可见状态,而不是报告虚假的成功。
 abstract interface class ThemeStorage {
   Future<ThemeSelection?> read();
 
-  /// Persists [palette] and [mode] as one logical value.
+  /// 将 [palette] 与 [mode] 作为一个逻辑值持久化。
   Future<void> write(WanPalette palette, ThemeMode mode);
 }

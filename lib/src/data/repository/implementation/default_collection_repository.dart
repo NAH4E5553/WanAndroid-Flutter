@@ -20,7 +20,7 @@ final class DefaultCollectionRepository implements CollectionRepository {
     this.maxReconcilePages = 50,
   }) {
     _sessions.addListener(_onSessionChanged);
-    // Sync with a session that may already be authenticated at construction.
+    // 与构造时可能已处于已认证状态的会话同步。
     _onSessionChanged();
   }
 
@@ -48,8 +48,8 @@ final class DefaultCollectionRepository implements CollectionRepository {
     }
   }
 
-  /// Account switches replace the snapshot; same-account state changes only
-  /// matter to listeners that also observe the session store.
+  /// 账号切换会整体替换快照;同一账号内的状态变化,
+  /// 只对同时观察会话存储的 listener 才有影响。
   void _onSessionChanged() {
     final SessionSnapshot session = _sessions.snapshot;
     final int? generation = session.authenticated ? session.generation : null;
@@ -80,8 +80,8 @@ final class DefaultCollectionRepository implements CollectionRepository {
       return const DataFailure<PageResult<Article>>(DataError.sessionChanged);
     }
     final CollectionSnapshot old = _snapshot;
-    // Re-verification may complete while reading without changing the account
-    // generation; the write epoch decides whether hints are eligible.
+    // 读取期间重新验证可能完成,而账号代次并未改变;
+    // 这些提示是否有资格被采纳,由写版本决定。
     final bool accepted = old.generation != null && version == _writeVersion;
     final Map<String, CollectionStatus> updates = accepted
         ? <String, CollectionStatus>{
@@ -110,7 +110,7 @@ final class DefaultCollectionRepository implements CollectionRepository {
                 chapter: article.chapter,
                 publishedAt: article.publishedAt,
                 collected: known ?? article.collected,
-                // Unknown or invalidated results cannot seed a later reader.
+                // 未知或已失效的结果不得作为后续读取者的初始依据。
                 collectionSession: known != null ? old.sessionKey : null,
               );
             })
@@ -165,8 +165,8 @@ final class DefaultCollectionRepository implements CollectionRepository {
     bool changed = false,
   }) {
     final CollectionSnapshot old = _snapshot;
-    // Validate the exact snapshot being copied, never resample another
-    // account afterwards.
+    // 校验的对象必须正是即将被复制的那个快照,
+    // 事后绝不重新采样成另一个账号。
     if (old.generation == tag.generation) {
       final String? canonicalKey = _canonicalKey(target);
       final Map<String, CollectionStatus> statuses = <String, CollectionStatus>{
@@ -177,10 +177,10 @@ final class DefaultCollectionRepository implements CollectionRepository {
             old.statuses[key] ?? const CollectionStatus();
         final bool direct = key == target.key || key == canonicalKey;
         statuses[key] = CollectionStatus(
-          // A confirmed uncollect applies to every known record alias for the
-          // article. A collect only updates the requested/canonical identity:
-          // a later collect can receive a new record id and must not revive a
-          // tombstone for the old record.
+          // 一旦确认 uncollect,就会应用到该文章所有已知的记录别名上。
+          // collect 只更新被请求的/规范(canonical)身份:
+          // 后续的 collect 可能收到新的 record id,
+          // 它绝不能复活旧记录的墓碑(tombstone)。
           collected: direct || status.collected == false
               ? status.collected
               : existing.collected,
@@ -235,10 +235,10 @@ final class DefaultCollectionRepository implements CollectionRepository {
       return _changed();
     }
     if (result is DataSuccess<PageResult<CollectionItem>>) {
-      // A successful uncollect is newer than a collection-list response that
-      // still contains the same server record. Keep that record hidden until
-      // the server list catches up. A later re-collect receives a new record
-      // id, so this tombstone cannot suppress the new collection.
+      // 一次成功的 uncollect,比仍然包含同一服务端记录的收藏列表响应
+      // 更新。在该记录被服务端列表追上之前,保持隐藏。
+      // 后续重新 collect 会收到新的 record id,
+      // 因此这条墓碑(tombstone)不会压制新的收藏。
       final List<CollectionItem> visibleItems = result.value.items
           .where(
             (CollectionItem item) => old.status(item.target).collected != false,
@@ -280,8 +280,8 @@ final class DefaultCollectionRepository implements CollectionRepository {
     return _sessions.isCurrent(tag) ? result : _changed();
   }
 
-  /// Strips the fragment and guarantees a non-empty path, matching the
-  /// collection-entry link normalization the Android version applies.
+  /// 去掉 fragment 并保证 path 非空,与 Android 版本对收藏条目链接
+  /// 的规范化处理保持一致。
   static String _normalizeLink(String raw) {
     final Uri uri = Uri.parse(raw.split('#').first);
     final String normalized = uri.toString();
@@ -372,8 +372,8 @@ final class DefaultCollectionRepository implements CollectionRepository {
     });
   }
 
-  /// Absence is known only after reaching the end; a bounded/failed scan
-  /// stays unknown.
+  /// 只有翻到列表末尾才能确认不存在;有界(未翻完)或失败的扫描
+  /// 一律保持未知。
   Future<DataResult<void>> _reconcileLocked(
     SessionRequest tag,
     CollectionTarget target,
@@ -433,8 +433,8 @@ final class DefaultCollectionRepository implements CollectionRepository {
     DataResult<void> result = const DataSuccess<void>(null);
     try {
       final bool? previous = _statusOf(target).collected;
-      // An uncertain previous request can only be reconciled, never blindly
-      // replayed.
+      // 先前不确定的请求只能通过核对(reconcile)收敛,
+      // 绝不能盲目重放。
       if (previous == null) {
         result = await _reconcileLocked(tag, target);
         return result;
@@ -476,8 +476,8 @@ final class DefaultCollectionRepository implements CollectionRepository {
       } else if (result is DataFailure<void> &&
           (result.error == DataError.network ||
               result.error == DataError.invalidResponse)) {
-        // The server may have committed before the connection was lost:
-        // reconcile the true state; the reported result stays the write's.
+        // 连接断开前服务端可能已经提交:先核对真实状态;
+        // 对外报告的结果仍以本次写入的结果为准。
         await _reconcileLocked(tag, target);
       } else {
         _publish(
@@ -496,8 +496,8 @@ final class DefaultCollectionRepository implements CollectionRepository {
       if (attempted) {
         _writeVersion++;
       }
-      // Refresh pagination after every attempted write, including uncertain
-      // writes.
+      // 每次已尝试的写入之后都刷新分页,
+      // 包括不确定写入在内。
       _publish(
         tag,
         target,

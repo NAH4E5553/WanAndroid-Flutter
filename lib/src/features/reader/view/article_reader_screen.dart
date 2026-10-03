@@ -195,9 +195,9 @@ class _ArticleReaderScreenState extends ConsumerState<ArticleReaderScreen> {
               WebResourceErrorType.timeout => ReaderFailureKind.timeout,
               _ => ReaderFailureKind.network,
             };
-            // Renderer death can strike long after the page finished loading;
-            // it always invalidates the WebView, so it bypasses the loading
-            // guard that other error kinds require.
+            // 渲染器进程死亡可能在页面加载完成后很久才发生；
+            // 它始终使 WebView 失效，因此会绕过其他错误类型
+            // 所要求的加载中守卫。
             if (kind == ReaderFailureKind.renderer) {
               if (!_failed) _fail(id, kind);
               return;
@@ -274,7 +274,7 @@ class _ArticleReaderScreenState extends ConsumerState<ArticleReaderScreen> {
       final bool canGoBack = await controller.canGoBack();
       if (_current(id) && !_failed) setState(() => _canGoBack = canGoBack);
     } on Object {
-      // Keep the last known value; an unavailable platform observation is not false.
+      // 保留最后一次已知的值；平台观察不可用并不等于 false。
     }
   }
 

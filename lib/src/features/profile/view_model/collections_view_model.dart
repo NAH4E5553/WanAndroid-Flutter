@@ -171,9 +171,9 @@ class CollectionsViewModel extends Notifier<CollectionsUiState> {
       return;
     }
     state = state.copyWith(
-      // Repository notifications are the cross-page invalidation channel.
-      // A reader-side uncollect therefore removes the matching row without
-      // waiting for this screen to issue another list request.
+      // 仓储通知就是跨页失效的通道。因此阅读器侧的取消收藏会直接
+      // 移除匹配的行，而无需等待本页面
+      // 再发起一次列表请求。
       items: List<CollectionItem>.unmodifiable(
         state.items.where(
           (CollectionItem item) =>

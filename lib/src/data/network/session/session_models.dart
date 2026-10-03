@@ -5,7 +5,7 @@ enum SessionPhase { loading, guest, verifying, authenticated, unverified }
 
 enum SessionNotice { none, expired, storageError }
 
-/// Immutable session view; `generation` advances on every account transition.
+/// 不可变的会话视图；`generation` 在每次账号状态切换时递增。
 class SessionSnapshot {
   const SessionSnapshot({
     this.phase = SessionPhase.loading,
@@ -33,14 +33,14 @@ class SessionSnapshot {
 
   bool get authenticated => phase == SessionPhase.authenticated;
 
-  /// Non-credential identity for account-bound response hints; never reused
-  /// across process restarts.
+  /// 用于账号相关响应提示的非凭据身份；跨进程重启
+  /// 绝不复用。
   String? authenticatedVersionKey(String instanceKey) =>
       authenticated ? '$instanceKey:$generation' : null;
 }
 
-/// Per-request identity also isolating login and detached logout from the
-/// shared session, mirroring the frozen contract.
+/// 每个请求各自的身份，同时把登录与分离登出与共享会话隔离开，
+/// 与已冻结的契约保持一致。
 class SessionRequest {
   SessionRequest.normal(int generation)
     : this._internal(generation, mode: SessionRequestMode.normal);

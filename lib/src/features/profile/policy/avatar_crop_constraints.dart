@@ -2,9 +2,9 @@ import 'dart:math' as math;
 
 import 'package:wanandroid_flutter/src/model/avatar.dart';
 
-/// Pure crop geometry shared by the adjustment UI and its regression tests.
-/// Keeping this outside the widget prevents tests from restating the formula
-/// without exercising the production implementation.
+/// 调整 UI 与其回归测试共享的纯裁剪几何。
+/// 把它放在 Widget 之外,防止测试不运行生产实现
+/// 就自行复述公式。
 abstract final class AvatarCropConstraints {
   static double minimumScale(double rotationRadians) {
     final double cos = math.cos(rotationRadians).abs();

@@ -1,7 +1,7 @@
 import 'package:wanandroid_flutter/src/data/network/service/wan_api_service.dart';
 
-/// Raw collection endpoint access; callers own session tagging and envelope
-/// decoding per the frozen contract.
+/// 直接访问收藏端点；调用方负责会话打标与 envelope 解码，
+/// 遵循已冻结的契约。
 abstract interface class CollectionNetworkDataSource {
   Future<Map<String, dynamic>> list(int page, Object? session);
 

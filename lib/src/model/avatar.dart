@@ -1,20 +1,20 @@
-/// Local avatar domain contracts shared across layers. Pure Dart: no Flutter,
-/// no `dart:ui`, no platform plugin types.
+/// 跨层共享的本地头像领域契约。纯 Dart:不依赖 Flutter、
+/// 不依赖 `dart:ui`,也不依赖平台插件类型。
 library;
 
-/// Where an avatar candidate comes from.
+/// 头像候选图的来源。
 enum AvatarSource { camera, gallery }
 
-/// User-applied crop transform captured by the adjust screen.
+/// 调整页面捕获的用户施加的裁剪变换。
 ///
-/// Semantics shared with `AvatarImageProcessor` so the final render is
-/// deterministic:
-/// - `scale` is relative to the base scale where the decoded image fully
-///   covers the axis-aligned square crop window (cover fit).
-/// - `offsetX`/`offsetY` are the image center offset from the crop center,
-///   as a fraction of the crop window side (positive = right/down).
-/// - `rotationRadians` is the extra free rotation applied around the image
-///   center.
+/// 语义与 `AvatarImageProcessor` 共享,使最终渲染结果
+/// 是确定的:
+/// - `scale` 相对于基准 scale,即解码图像完全
+///   覆盖轴对齐方形裁剪窗口(cover fit)时的 scale。
+/// - `offsetX`/`offsetY` 是图像中心相对裁剪中心的偏移,
+///   以裁剪窗口边长的比例表示(正值 = 向右/向下)。
+/// - `rotationRadians` 是绕图像中心施加的
+///   额外自由旋转。
 final class AvatarCropParams {
   const AvatarCropParams({
     required this.scale,
@@ -31,9 +31,9 @@ final class AvatarCropParams {
 
 enum PendingAvatarOperationStatus { awaitingResult }
 
-/// Single in-flight external avatar operation, persisted before the system
-/// camera/gallery opens so an Android process kill can re-attribute the late
-/// result.
+/// 单条进行中的外部头像操作,在系统相机/相册打开前持久化,
+/// 使 Android 进程被杀后可以对迟到结果
+/// 重新进行归属。
 final class PendingAvatarOperation {
   const PendingAvatarOperation({
     required this.operationId,
@@ -84,7 +84,7 @@ final class PendingAvatarOperation {
   }
 }
 
-/// Outcome of handing the current avatar bytes to the system gallery.
+/// 将当前头像字节交给系统相册的结果。
 enum AvatarGallerySaveStatus {
   success,
   permissionDenied,
@@ -132,11 +132,11 @@ final class AvatarGallerySaveOutcome {
 
   final AvatarGallerySaveStatus status;
 
-  /// Diagnostic detail kept out of user-facing copy.
+  /// 诊断细节,不进入面向用户的文案。
   final Object? error;
 }
 
-/// Result of the system picker round trip.
+/// 系统选择器一次往返的结果。
 enum AvatarPickStatus { ready, cancelled, unavailable }
 
 final class AvatarPickOutcome {
@@ -153,12 +153,12 @@ final class AvatarPickOutcome {
 
   final AvatarPickStatus status;
 
-  /// Candidate copy inside the app temp directory; only for [ready].
+  /// 应用临时目录中的候选副本;仅在 [ready] 时有值。
   final String? copiedPath;
 }
 
-/// UI-facing avatar state for the current session identity, so views never
-/// touch file storage, pickers or the processor.
+/// 面向 UI 的当前会话身份头像状态,使 View 永不接触
+/// 文件存储、选择器或处理器。
 class AvatarStateView {
   const AvatarStateView({
     required this.userId,
@@ -174,33 +174,33 @@ class AvatarStateView {
 
   final int? userId;
 
-  /// A verified session with an operation identity; gates the whole editor
-  /// flow (guest/verifying/unverified/expired are all read-only).
+  /// 具有操作身份的已验证会话;是整个编辑流程的门禁
+  /// (guest/verifying/unverified/expired 均为只读)。
   final bool editable;
 
-  /// The current user has a persisted custom avatar file.
+  /// 当前用户已有已持久化的自定义头像文件。
   final bool customAvailable;
 
-  /// Absolute path of the persisted avatar file; only when [customAvailable].
+  /// 已持久化头像文件的绝对路径;仅在 [customAvailable] 时有值。
   final String? customAvatarPath;
 
-  /// A picked/captured candidate awaits the adjust screen.
+  /// 已挑选/拍摄的候选图等待进入调整页面。
   final bool candidateReady;
 
-  /// Absolute path of the candidate copy; only when [candidateReady].
+  /// 候选副本的绝对路径;仅在 [candidateReady] 时有值。
   final String? candidatePath;
 
   final bool committing;
   final bool savingToGallery;
 
-  /// A process-recovered candidate passed attribution and waits for the app
-  /// to navigate to the adjust page; cleared via
-  /// `AvatarRepository.markRecoveryConsumed`.
+  /// 经进程恢复的候选图已通过归属校验,等待应用
+  /// 导航到调整页面;通过
+  /// `AvatarRepository.markRecoveryConsumed` 清除。
   final bool recoveryReady;
 }
 
-/// A direction-normalized PNG copy supplied by the portable picker.
-/// The caller owns and releases the external file; the repository only copies it.
+/// 便携选择器提供的已完成方向归一化的 PNG 副本。
+/// 调用方拥有并负责释放外部文件;仓储只对其进行复制。
 final class AvatarImportedImage {
   const AvatarImportedImage({
     required this.path,

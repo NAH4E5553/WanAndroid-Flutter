@@ -1,7 +1,7 @@
-/// Minimal host-only cookie model for the wanandroid.com session jar.
+/// 供 wanandroid.com 会话 Cookie 罐使用的最小化、仅限主机的 Cookie 模型。
 ///
-/// Deliberately narrow: only cookies whose domain equals the API host are
-/// accepted, so cross-domain handling is out of scope by contract.
+/// 刻意收窄范围：只接受 domain 等于 API 主机的 Cookie，
+/// 因此跨域处理按契约不在范围内。
 class WebCookie {
   const WebCookie({
     required this.name,
@@ -66,8 +66,8 @@ class WebCookie {
     );
   }
 
-  /// Parses one Set-Cookie header value. Returns null for cookies that do not
-  /// belong to the API host or cannot be represented by this model.
+  /// 解析单个 Set-Cookie 头的值。对不属于 API 主机或无法用本模型
+  /// 表示的 Cookie 返回 null。
   static WebCookie? parse(String header, {required String apiHost}) {
     final List<String> segments = header.split(';');
     if (segments.isEmpty) {
@@ -124,10 +124,10 @@ class WebCookie {
             .millisecondsSinceEpoch;
       }
     }
-    // Session cookies (no Expires/Max-Age) never expire while the process
-    // lives — model them with a far-future stamp so they are not treated as
-    // expired; `persistent` still keeps them out of encrypted storage.
-    const int sessionFarFuture = 4102444800000; // 2100-01-01 UTC
+    // 会话 Cookie（无 Expires/Max-Age）在进程存活期间永不过期——
+    // 用远未来的时间戳建模，使它们不会被当作已过期；
+    // `persistent` 仍会把它们排除在加密存储之外。
+    const int sessionFarFuture = 4102444800000; // UTC 时间 2100-01-01
     final bool persistent = expiresAt != null || (maxAge ?? 0) > 0;
     final int expires = persistent ? expiresAt! : sessionFarFuture;
     return WebCookie(
@@ -140,9 +140,9 @@ class WebCookie {
     );
   }
 
-  /// Parses Expires dates in both the RFC 1123 form ("Wed, 21 Oct 2015
-  /// 07:28:00 GMT") and the dashed Netscape form some servers emit
-  /// ("Wed, 21-Oct-2026 13:36:34 GMT").
+  /// 解析两种格式的 Expires 日期：RFC 1123 格式（"Wed, 21 Oct 2015
+  /// 07:28:00 GMT"）以及部分服务器会发出的带连字符的 Netscape 格式
+  /// （"Wed, 21-Oct-2026 13:36:34 GMT"）。
   static int? _parseHttpDate(String value) {
     final RegExpMatch? match = RegExp(
       r'(\d{1,2})[- ]([A-Za-z]{3})[- ](\d{2,4}) (\d{2}):(\d{2}):(\d{2})',

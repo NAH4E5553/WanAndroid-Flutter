@@ -336,7 +336,7 @@ const Map<WanPalette, _PalettePair> _palettes = <WanPalette, _PalettePair>{
   ),
 };
 
-/// Three representative swatches for the active brightness of a palette.
+/// 调色板在当前亮度下的三个代表性色样。
 class PaletteSwatchColors {
   const PaletteSwatchColors({
     required this.primary,
@@ -421,8 +421,8 @@ ColorScheme _colorScheme(WanPalette palette, {required bool dark}) {
     onInverseSurface: dark ? const Color(0xFF2E3135) : const Color(0xFFEFF1F5),
     inversePrimary: dark ? lightAccent.primary : darkAccent.primary,
     surfaceTint: accent.primary,
-    // Compose still exposes surfaceVariant. Flutter maps new components to
-    // container roles, but keeping this exact value preserves legacy defaults.
+    // Compose 仍然暴露 surfaceVariant。Flutter 会把新组件映射到
+    // container 角色,但保持这个精确取值可以保留旧版默认值。
     // ignore: deprecated_member_use
     surfaceVariant: dark ? const Color(0xFF42474D) : const Color(0xFFDEE3E8),
   );

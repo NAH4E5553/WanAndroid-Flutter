@@ -15,9 +15,9 @@ class SessionChangedException implements Exception {
   const SessionChangedException();
 }
 
-/// Single authority for session cookies and phases. All memory/disk
-/// transitions run through this class; Dart's single-threaded event loop makes
-/// each async method body atomic between awaits.
+/// 会话 Cookie 与各阶段状态的唯一权威。所有内存/磁盘
+/// 状态迁移都经由本类完成；Dart 的单线程事件循环使每个异步
+/// 方法体在 await 之间保持原子性。
 class SessionStore extends ChangeNotifier {
   SessionStore({required this._storage});
 
@@ -92,12 +92,12 @@ class SessionStore extends ChangeNotifier {
     return _snapshot;
   }
 
-  /// Capture is synchronous: initialization and expiry are handled by
-  /// [initialize] and server-side -1001 handling beforehand.
+  /// 捕获是同步的：初始化与过期在此之前已由 [initialize]
+  /// 和服务端 -1001 处理完毕。
   SessionRequest capture() => SessionRequest.normal(_snapshot.generation);
 
-  /// Clears the current account before a login attempt. Storage failure makes
-  /// the transition unreportable and must abort the login.
+  /// 在登录尝试前清除当前账号。存储失败会使这次状态迁移无法上报，
+  /// 必须中止登录。
   Future<SessionRequest> beginLogin() async {
     final bool cleared = await _clearLocked(SessionNotice.none);
     if (!cleared) {
@@ -106,8 +106,8 @@ class SessionStore extends ChangeNotifier {
     return SessionRequest.login(_snapshot.generation);
   }
 
-  /// Detaches the current account's cookies for a best-effort server logout;
-  /// the returned identity belongs to the post-detach guest state.
+  /// 分离当前账号的 Cookie，以尽力完成服务端登出；
+  /// 返回的身份属于分离之后的访客状态。
   Future<SessionRequest> detach() async {
     final List<WebCookie> old = _cookies;
     final bool cleared = await _clearLocked(SessionNotice.none);
@@ -117,8 +117,8 @@ class SessionStore extends ChangeNotifier {
     return SessionRequest.detachedLogout(_snapshot.generation, old);
   }
 
-  /// Cookie header for one request; login requests carry no cookies and
-  /// detached logouts carry only the detached account's cookies.
+  /// 单个请求的 Cookie 头；登录请求不携带任何 Cookie，
+  /// 分离登出只携带被分离账号的 Cookie。
   String cookieHeader(SessionRequest request, Uri url) {
     if (!isApiUrl(url)) {
       return '';
@@ -158,8 +158,8 @@ class SessionStore extends ChangeNotifier {
     );
   }
 
-  /// Attaches a verified identity to a restored session; a different account
-  /// must never be attached to restored cookies.
+  /// 把已验证的身份附加到已恢复的会话上；绝不允许把不同的账号
+  /// 附加到已恢复的 Cookie 上。
   Future<bool> verified(SessionRequest request, User user) async {
     if (!isCurrent(request) || _snapshot.user == null) {
       return false;
@@ -191,8 +191,8 @@ class SessionStore extends ChangeNotifier {
     }
   }
 
-  /// Queues Set-Cookie values observed on a tagged response; applied on the
-  /// next [flushResponseCookies] for that request.
+  /// 把在已打标响应上观察到的 Set-Cookie 值加入队列；在下次对该请求
+  /// 调用 [flushResponseCookies] 时应用。
   void observeResponseCookies(SessionRequest request, List<WebCookie> cookies) {
     if (cookies.isEmpty ||
         request.mode == SessionRequestMode.logout ||
@@ -276,8 +276,8 @@ class SessionStore extends ChangeNotifier {
       throw const SessionStorageException();
     }
     if (cancellation.isCancelled) {
-      // A route can leave while the secure-storage write is in flight. Never
-      // publish the just-persisted identity, even transiently, in that case.
+      // 路由可能在安全存储写入进行中时离开。这种情况下绝不能发布
+      // 刚持久化的身份，哪怕是短暂发布也不行。
       await _clearLocked(SessionNotice.none);
       throw const RequestCancelledException();
     }
@@ -295,7 +295,7 @@ class SessionStore extends ChangeNotifier {
     final List<WebCookie> persistent = cookies
         .where((WebCookie cookie) => cookie.persistent && !cookie.expired)
         .toList(growable: false);
-    // Session-only cookies stay in memory and never survive a restart.
+    // 仅会话期有效的 Cookie 只留在内存中，重启后绝不保留。
     final String? payload = persistent.isEmpty
         ? null
         : jsonEncode(<String, Object?>{
@@ -318,8 +318,8 @@ class SessionStore extends ChangeNotifier {
     }
   }
 
-  /// Marks in-memory guest state immediately; storage cleanup failures surface
-  /// as [SessionNotice.storageError] because the stale payload is unremovable.
+  /// 立即标记内存中的访客状态；存储清理失败会以
+  /// [SessionNotice.storageError] 的形式暴露，因为过期负载已无法移除。
   Future<void> _clear(SessionNotice notice) async {
     await _clearLocked(notice);
   }
@@ -367,7 +367,7 @@ class SessionStore extends ChangeNotifier {
   }
 }
 
-/// Split so tests can reuse the payload codec without the plugin.
+/// 单独拆分出来，使测试无需插件即可复用负载编解码器。
 class SecureSessionStorageAdapter {
   const SecureSessionStorageAdapter._();
 
